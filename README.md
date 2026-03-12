@@ -1,4 +1,4 @@
-# CuestioAnálisis — Análisis Estratégico de Oposiciones
+# CuestioAnálisis - Análisis Estratégico de Oposiciones
 
 Aplicación web para el análisis de cuestionarios de oposiciones. Permite importar bancos de preguntas en formato CSV y obtener estadísticas, visualizaciones y herramientas de estudio avanzadas.
 
