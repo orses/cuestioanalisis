@@ -15,6 +15,7 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
     const datos = useMemo(() => generarComparativa(preguntas), [preguntas]);
     const [seleccionados, setSeleccionados] = useState<string[]>([]);
     const [vistaRadar, setVistaRadar] = useState(false);
+    const [radarAgrupacion, setRadarAgrupacion] = useState<'materias' | 'bloques' | 'temas' | 'programas'>('materias');
 
     const toggleSeleccion = (ej: string) => {
         setSeleccionados(prev =>
@@ -158,25 +159,44 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
                         (máximo 4)
                     </span>
                 </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '10px' }}>
                     {datos.map(d => {
                         const sel = seleccionados.includes(d.ejercicio);
+                        const disabled = !sel && seleccionados.length >= 4;
                         return (
-                            <button
+                            <div
                                 key={d.ejercicio}
-                                onClick={() => toggleSeleccion(d.ejercicio)}
+                                onClick={() => {
+                                    if (!disabled) toggleSeleccion(d.ejercicio);
+                                }}
                                 style={{
-                                    display: 'flex', alignItems: 'center', gap: '4px',
-                                    padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 600,
-                                    border: `1px solid ${sel ? 'var(--accent-primary)' : 'var(--border-primary)'}`,
-                                    backgroundColor: sel ? 'var(--accent-primary)' : 'var(--bg-secondary)',
-                                    color: sel ? '#fff' : 'var(--text-primary)',
-                                    cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', gap: '12px',
+                                    padding: '10px 14px', borderRadius: '8px',
+                                    border: `1px solid ${sel ? 'var(--accent-primary)' : 'var(--border-secondary)'}`,
+                                    backgroundColor: sel ? 'var(--bg-tertiary)' : 'var(--bg-primary)',
+                                    cursor: disabled ? 'not-allowed' : 'pointer',
+                                    opacity: disabled ? 0.6 : 1,
+                                    transition: 'all 0.2s ease'
                                 }}
                             >
-                                {sel && <Check className="w-3 h-3" />}
-                                {d.ejercicio} ({d.totalPreguntas})
-                            </button>
+                                <div style={{
+                                    width: '18px', height: '18px', borderRadius: '4px',
+                                    border: `2px solid ${sel ? 'var(--accent-primary)' : 'var(--border-primary)'}`,
+                                    backgroundColor: sel ? 'var(--accent-primary)' : 'transparent',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    flexShrink: 0, transition: 'all 0.2s ease'
+                                }}>
+                                    {sel && <Check className="w-3 h-3" style={{ color: '#fff', strokeWidth: 3 }} />}
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                                    <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                                        {d.ejercicio}
+                                    </span>
+                                    <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
+                                        {d.totalPreguntas} preguntas
+                                    </span>
+                                </div>
+                            </div>
                         );
                     })}
                 </div>
@@ -263,12 +283,31 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
                             padding: '16px', borderRadius: '10px',
                             backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-secondary)',
                         }}>
-                            <h4 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '16px' }}>
-                                Perfil temático por materia (radar)
-                            </h4>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                                <h4 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                                    Perfil temático (radar)
+                                </h4>
+                                <div style={{ display: 'flex', gap: '4px' }}>
+                                    {(['materias', 'bloques', 'temas', 'programas'] as const).map(ag => (
+                                        <button key={ag} onClick={() => setRadarAgrupacion(ag)} style={{
+                                            padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 600,
+                                            border: '1px solid var(--border-primary)', cursor: 'pointer',
+                                            backgroundColor: radarAgrupacion === ag ? 'var(--accent-primary)' : 'var(--bg-secondary)',
+                                            color: radarAgrupacion === ag ? '#fff' : 'var(--text-primary)',
+                                        }}>
+                                            {ag.charAt(0).toUpperCase() + ag.slice(1)}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
                             <div style={{ width: '100%', height: 400 }}>
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <RadarChart data={dataMaterias.map(d => {
+                                    <RadarChart data={(
+                                        radarAgrupacion === 'materias' ? dataMaterias :
+                                        radarAgrupacion === 'bloques' ? dataBloques :
+                                        radarAgrupacion === 'temas' ? dataTemas :
+                                        dataProgramas
+                                    ).map(d => {
                                         const row: any = { name: d.name };
                                         datosSeleccionados.forEach(ds => {
                                             const total = ds.totalPreguntas || 1;
@@ -280,6 +319,7 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
                                         <PolarAngleAxis
                                             dataKey="name"
                                             tick={{ fill: 'var(--text-primary)', fontSize: 11 }}
+                                            tickFormatter={(name: string) => name.length > 18 ? name.substring(0, 18) + '...' : name}
                                         />
                                         <PolarRadiusAxis
                                             angle={30}
