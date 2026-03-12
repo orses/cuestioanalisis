@@ -64,6 +64,16 @@ export const BarraFiltros: React.FC<BarraFiltrosProps> = ({
     setBusqueda, limpiar, limpiarCatalogo,
 }) => {
     const [colapsado, setColapsado] = useState(false);
+    const [overflowVisible, setOverflowVisible] = useState(true);
+
+    const handleToggleColapso = () => {
+        if (!colapsado) {
+            setOverflowVisible(false);
+            setColapsado(true);
+        } else {
+            setColapsado(false);
+        }
+    };
 
     const handleLimpiarTodo = () => {
         limpiar();
@@ -82,7 +92,7 @@ export const BarraFiltros: React.FC<BarraFiltrosProps> = ({
             <div className="max-w-[1400px] mx-auto px-4 py-3">
                 <div className="flex items-center gap-2 mb-1">
                     <button
-                        onClick={() => setColapsado(!colapsado)}
+                        onClick={handleToggleColapso}
                         className="flex items-center gap-2 text-sm font-medium text-body hover:text-heading transition-colors"
                         aria-expanded={!colapsado}
                         aria-controls="filtros-panel"
@@ -117,10 +127,15 @@ export const BarraFiltros: React.FC<BarraFiltrosProps> = ({
                 <div
                     id="filtros-panel"
                     className="filtros-colapsable"
+                    onTransitionEnd={(e) => {
+                        if (e.target === e.currentTarget && !colapsado) {
+                            setOverflowVisible(true);
+                        }
+                    }}
                     style={{
                         maxHeight: colapsado ? '0px' : '500px',
                         opacity: colapsado ? 0 : 1,
-                        overflow: 'hidden',
+                        overflow: overflowVisible ? 'visible' : 'hidden',
                         transition: 'max-height 0.3s ease, opacity 0.2s ease',
                     }}
                 >
