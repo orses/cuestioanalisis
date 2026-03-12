@@ -143,16 +143,40 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
         );
     };
 
-    // Generar un hash determinista para el color a partir de organismo y escala
-    const stringToColor = (str: string) => {
-        let hash = 0;
-        for (let i = 0; i < str.length; i++) {
-            hash = str.charCodeAt(i) + ((hash << 5) - hash);
-        }
-        // Colores HSL con buena saturación y luminosidad para que se vean bien
-        const h = Math.abs(hash) % 360;
-        return `hsl(${h}, 70%, 45%)`;
-    };
+    // Generar un color fijo para cada combinación de organismo+escala evitando colisiones
+    const colorMap = useMemo(() => {
+        const mapa = new Map<string, string>();
+        // Paleta base de colores bien diferenciados (tonos vivos y legibles)
+        const PALETA = [
+            'hsl(210, 70%, 45%)', // Azul
+            'hsl(150, 70%, 35%)', // Verde oscuro
+            'hsl(330, 70%, 50%)', // Rosa oscuro
+            'hsl(30, 90%, 50%)',  // Naranja
+            'hsl(270, 60%, 55%)', // Morado
+            'hsl(190, 80%, 40%)', // Cian oscuro
+            'hsl(0, 70%, 50%)',   // Rojo
+            'hsl(90, 60%, 40%)',  // Verde lima oscuro
+            'hsl(300, 60%, 45%)', // Magenta
+            'hsl(50, 90%, 40%)',  // Amarillo dorado
+            'hsl(240, 60%, 55%)', // Azul índigo
+            'hsl(350, 70%, 55%)', // Carmesí
+        ];
+        
+        let colorIndex = 0;
+        
+        // Iteramos sobre todos los datos disponibles, recolectando combinaciones únicas
+        datos.forEach(d => {
+            const key = `${d.organismo}-${d.escala}`;
+            if (!mapa.has(key)) {
+                mapa.set(key, PALETA[colorIndex % PALETA.length]);
+                colorIndex++;
+            }
+        });
+        
+        return mapa;
+    }, [datos]);
+
+    const getColor = (orgEsc: string) => colorMap.get(orgEsc) || 'var(--border-primary)';
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -161,20 +185,35 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
                 padding: '16px', borderRadius: '10px',
                 backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-secondary)',
             }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                    <GitCompare className="w-5 h-5" style={{ color: 'var(--accent-primary)' }} />
-                    <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                        Seleccionar convocatorias a comparar
-                    </h3>
-                    <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginLeft: '8px' }}>
-                        (máximo 4)
-                    </span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <GitCompare className="w-5 h-5" style={{ color: 'var(--accent-primary)' }} />
+                        <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                            Seleccionar convocatorias a comparar
+                        </h3>
+                        <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginLeft: '8px' }}>
+                            (máximo 4)
+                        </span>
+                    </div>
+                    
+                    {seleccionados.length > 0 && (
+                        <button 
+                            onClick={() => setSeleccionados([])}
+                            style={{ 
+                                fontSize: '11px', fontWeight: 600, color: 'var(--accent-danger)',
+                                backgroundColor: 'transparent', border: 'none', cursor: 'pointer',
+                                padding: '4px 8px', borderRadius: '4px'
+                            }}
+                        >
+                            Desmarcar todo
+                        </button>
+                    )}
                 </div>
                 <div style={{ columnWidth: '220px', columnGap: '10px' }}>
                     {[...datos].sort((a, b) => a.ejercicio.localeCompare(b.ejercicio)).map(d => {
                         const sel = seleccionados.includes(d.ejercicio);
                         const disabled = !sel && seleccionados.length >= 4;
-                        const colorOrgeSca = stringToColor(`${d.organismo}-${d.escala}`);
+                        const colorOrgeSca = getColor(`${d.organismo}-${d.escala}`);
                         
                         return (
                             <div
