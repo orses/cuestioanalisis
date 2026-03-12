@@ -160,7 +160,7 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
                     </span>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '10px' }}>
-                    {datos.map(d => {
+                    {[...datos].sort((a, b) => a.ejercicio.localeCompare(b.ejercicio)).map(d => {
                         const sel = seleccionados.includes(d.ejercicio);
                         const disabled = !sel && seleccionados.length >= 4;
                         return (
