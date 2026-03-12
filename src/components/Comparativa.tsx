@@ -143,6 +143,17 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
         );
     };
 
+    // Generar un hash determinista para el color a partir de organismo y escala
+    const stringToColor = (str: string) => {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            hash = str.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        // Colores HSL con buena saturación y luminosidad para que se vean bien
+        const h = Math.abs(hash) % 360;
+        return `hsl(${h}, 70%, 45%)`;
+    };
+
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             {/* Selector de ejercicios */}
@@ -159,10 +170,12 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
                         (máximo 4)
                     </span>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '10px' }}>
+                <div style={{ columnWidth: '220px', columnGap: '10px' }}>
                     {[...datos].sort((a, b) => a.ejercicio.localeCompare(b.ejercicio)).map(d => {
                         const sel = seleccionados.includes(d.ejercicio);
                         const disabled = !sel && seleccionados.length >= 4;
+                        const colorOrgeSca = stringToColor(`${d.organismo}-${d.escala}`);
+                        
                         return (
                             <div
                                 key={d.ejercicio}
@@ -170,13 +183,17 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
                                     if (!disabled) toggleSeleccion(d.ejercicio);
                                 }}
                                 style={{
+                                    breakInside: 'avoid',
+                                    marginBottom: '10px',
                                     display: 'flex', alignItems: 'center', gap: '12px',
                                     padding: '10px 14px', borderRadius: '8px',
                                     border: `1px solid ${sel ? 'var(--accent-primary)' : 'var(--border-secondary)'}`,
+                                    borderLeft: `4px solid ${colorOrgeSca}`,
                                     backgroundColor: sel ? 'var(--bg-tertiary)' : 'var(--bg-primary)',
                                     cursor: disabled ? 'not-allowed' : 'pointer',
                                     opacity: disabled ? 0.6 : 1,
-                                    transition: 'all 0.2s ease'
+                                    transition: 'all 0.2s ease',
+                                    position: 'relative'
                                 }}
                             >
                                 <div style={{
@@ -188,12 +205,14 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
                                 }}>
                                     {sel && <Check className="w-3 h-3" style={{ color: '#fff', strokeWidth: 3 }} />}
                                 </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                                    <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-                                        {d.ejercicio}
-                                    </span>
-                                    <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
-                                        {d.totalPreguntas} preguntas
+                                <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', width: '100%' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                                        <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                                            {d.ejercicio}
+                                        </span>
+                                    </div>
+                                    <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                                        {d.organismo} ({d.escala})
                                     </span>
                                 </div>
                             </div>

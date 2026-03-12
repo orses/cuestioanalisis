@@ -430,6 +430,8 @@ export function agruparPorConcepto(
 export interface ComparativaData {
     ejercicio: string;
     año: number;
+    organismo: string;
+    escala: string;
     totalPreguntas: number;
     materias: Record<string, number>;
     bloques: Record<string, number>;
@@ -473,6 +475,8 @@ export function generarComparativa(preguntas: Pregunta[]): ComparativaData[] {
         datos.push({
             ejercicio,
             año: ps[0].metadatos.año,
+            organismo: ps[0].metadatos.organismo,
+            escala: ps[0].metadatos.escala,
             totalPreguntas: ps.length,
             materias,
             bloques,
