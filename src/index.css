@@ -1,0 +1,247 @@
+@import "tailwindcss";
+
+@theme {
+    --color-excel: #1D6F42;
+    --color-word: #2B579A;
+    --color-access: #A4373A;
+    --color-windows: #00A4EF;
+    --color-outlook: #0078D4;
+    --color-internet: #7719AA;
+    --color-hardware: #FF8C00;
+    --color-seguridad: #DC3545;
+    --color-correo: #16A34A;
+}
+
+/* ===== SISTEMA DE VARIABLES PARA MODO CLARO/OSCURO ===== */
+:root {
+    /* Fondos */
+    --bg-primary: #f8fafc;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #f1f5f9;
+    --bg-hover: #e2e8f0;
+    --bg-active: #eef2ff;
+
+    /* Texto — contraste WCAG AA mínimo 4.5:1 */
+    --text-primary: #0f172a;
+    --text-secondary: #1e293b;
+    --text-tertiary: #475569;
+    --text-on-accent: #ffffff;
+
+    /* Bordes */
+    --border-primary: #cbd5e1;
+    --border-secondary: #e2e8f0;
+    --border-active: #6366f1;
+
+    /* Acentos */
+    --accent-primary: #4f46e5;
+    --accent-primary-hover: #4338ca;
+    --accent-success: #15803d;
+    --accent-warning: #d97706;
+    --accent-danger: #dc2626;
+
+    /* KPI */
+    --kpi-bg: #ffffff;
+    --kpi-border: #e2e8f0;
+
+    /* Gradientes insight */
+    --insight-gradient-from: #667eea;
+    --insight-gradient-to: #764ba2;
+
+    /* Focus ring */
+    --focus-ring: #4f46e5;
+}
+
+.dark {
+    --bg-primary: #0f172a;
+    --bg-secondary: #1e293b;
+    --bg-tertiary: #334155;
+    --bg-hover: #475569;
+    --bg-active: #312e81;
+
+    --text-primary: #f1f5f9;
+    --text-secondary: #cbd5e1;
+    --text-tertiary: #94a3b8;
+    --text-on-accent: #ffffff;
+
+    --border-primary: #475569;
+    --border-secondary: #334155;
+    --border-active: #818cf8;
+
+    --accent-primary: #818cf8;
+    --accent-primary-hover: #6366f1;
+    --accent-success: #22c55e;
+    --accent-warning: #f59e0b;
+    --accent-danger: #ef4444;
+
+    --kpi-bg: #1e293b;
+    --kpi-border: #334155;
+
+    --insight-gradient-from: #4338ca;
+    --insight-gradient-to: #581c87;
+
+    --focus-ring: #818cf8;
+}
+
+/* ===== ESTILOS GLOBALES DE ACCESIBILIDAD ===== */
+body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    line-height: 1.6;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Compensar cabecera sticky al hacer scroll a secciones ancladas */
+[id^="sec-"] {
+    scroll-margin-top: 150px;
+}
+
+/* Cursor interactivo global */
+button,
+a,
+[role="button"],
+input[type="button"],
+input[type="submit"],
+input[type="reset"] {
+    cursor: pointer;
+}
+
+/* Focus visible global — WCAG 2.4.7 */
+*:focus-visible {
+    outline: 3px solid var(--focus-ring);
+    outline-offset: 2px;
+    border-radius: 2px;
+}
+
+/* Skip-link para lectores de pantalla */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* ===== UTILIDADES DE TEMA ===== */
+.bg-app {
+    background-color: var(--bg-primary);
+}
+
+.bg-card {
+    background-color: var(--bg-secondary);
+}
+
+.bg-muted {
+    background-color: var(--bg-tertiary);
+}
+
+.bg-hover-custom {
+    background-color: var(--bg-hover);
+}
+
+.text-heading {
+    color: var(--text-primary);
+}
+
+.text-body {
+    color: var(--text-secondary);
+}
+
+.text-muted {
+    color: var(--text-tertiary);
+}
+
+.border-card {
+    border-color: var(--border-primary);
+}
+
+.border-subtle {
+    border-color: var(--border-secondary);
+}
+
+/* ===== COMPONENTES ===== */
+.kpi-card {
+    background-color: var(--kpi-bg);
+    border: 1px solid var(--kpi-border);
+    border-radius: 0.75rem;
+    padding: 1.25rem 1.5rem;
+    transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.kpi-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transform: translateY(-1px);
+}
+
+.stat-insight {
+    background: linear-gradient(135deg, var(--insight-gradient-from), var(--insight-gradient-to));
+    color: white;
+    border-radius: 0.5rem;
+    padding: 1.25rem;
+}
+
+.progress-bar-track {
+    background-color: var(--bg-tertiary);
+    border-radius: 9999px;
+    height: 10px;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    border-radius: 9999px;
+    transition: width 0.4s ease;
+    min-width: 4%;
+}
+
+.category-chip {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    color: white;
+    min-width: 90px;
+    text-align: center;
+}
+
+/* Cabeceras ordenables de tabla */
+.sortable-header {
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.1s ease;
+}
+
+.sortable-header:hover {
+    background-color: var(--bg-hover);
+}
+
+/* Animaciones sutiles */
+@keyframes fadeSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fade-slide {
+    animation: fadeSlideIn 0.35s ease-out;
+}
+
+/* Hover en filas de tablas de datos */
+.table-row-hover {
+    transition: background-color 0.15s ease;
+}
+
+.table-row-hover:hover {
+    background-color: var(--bg-hover) !important;
+}
