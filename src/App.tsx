@@ -55,7 +55,17 @@ function App() {
   const [preguntaAExpandir, setPreguntaAExpandir] = useState<string | null>(null);
 
   // ——— Vista activa ———
-  const [vistaActual, setVistaActual] = useState<Vista>('resumen');
+  const [vistaActual, setVistaActual] = useState<Vista>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('vistaActual');
+      if (stored) return stored as Vista;
+    }
+    return 'resumen';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('vistaActual', vistaActual);
+  }, [vistaActual]);
 
   // ——— Botón Ir arriba ———
   const [mostrarIrArriba, setMostrarIrArriba] = useState(false);
