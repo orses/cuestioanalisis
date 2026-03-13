@@ -221,19 +221,21 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
                                 onClick={() => {
                                     if (!disabled) toggleSeleccion(d.ejercicio);
                                 }}
-                                style={{
-                                    breakInside: 'avoid',
-                                    marginBottom: '10px',
-                                    display: 'flex', alignItems: 'center', gap: '12px',
-                                    padding: '10px 14px', borderRadius: '8px',
-                                    border: `1px solid ${sel ? 'var(--accent-primary)' : 'var(--border-secondary)'}`,
-                                    borderLeft: `4px solid ${colorOrgeSca}`,
-                                    backgroundColor: sel ? 'var(--bg-tertiary)' : 'var(--bg-primary)',
-                                    cursor: disabled ? 'not-allowed' : 'pointer',
-                                    opacity: disabled ? 0.6 : 1,
-                                    transition: 'all 0.2s ease',
-                                    position: 'relative'
-                                }}
+                                    style={{
+                                        breakInside: 'avoid',
+                                        marginBottom: '10px',
+                                        display: 'flex', alignItems: 'center', gap: '12px',
+                                        padding: '10px 14px', borderRadius: '8px',
+                                        borderTop: `1px solid ${sel ? 'var(--accent-primary)' : 'var(--border-secondary)'}`,
+                                        borderRight: `1px solid ${sel ? 'var(--accent-primary)' : 'var(--border-secondary)'}`,
+                                        borderBottom: `1px solid ${sel ? 'var(--accent-primary)' : 'var(--border-secondary)'}`,
+                                        borderLeft: `4px solid ${colorOrgeSca}`,
+                                        backgroundColor: sel ? 'var(--bg-tertiary)' : 'var(--bg-primary)',
+                                        cursor: disabled ? 'not-allowed' : 'pointer',
+                                        opacity: disabled ? 0.6 : 1,
+                                        transition: 'all 0.2s ease',
+                                        position: 'relative'
+                                    }}
                             >
                                 <div style={{
                                     width: '18px', height: '18px', borderRadius: '4px',
