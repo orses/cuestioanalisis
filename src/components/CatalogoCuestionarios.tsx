@@ -35,6 +35,16 @@ export const CatalogoCuestionarios: React.FC<Props> = ({
 }) => {
     const [busqueda, setBusqueda] = useState('');
     const [filtrosColapsados, setFiltrosColapsados] = useState(false);
+    const [overflowVisible, setOverflowVisible] = useState(true);
+
+    const handleToggleFiltros = () => {
+        if (!filtrosColapsados) {
+            setOverflowVisible(false);
+            setFiltrosColapsados(true);
+        } else {
+            setFiltrosColapsados(false);
+        }
+    };
 
     const catalogoAMostrar = busqueda
         ? catalogoFiltradoGlobal.filter(c =>
@@ -96,7 +106,7 @@ export const CatalogoCuestionarios: React.FC<Props> = ({
                     {/* Filtros Globales del Catálogo */}
                     <div className="mb-4 p-4 rounded-lg bg-body">
                         <button
-                            onClick={() => setFiltrosColapsados(!filtrosColapsados)}
+                            onClick={handleToggleFiltros}
                             className="flex items-center gap-2 text-sm font-medium text-body hover:text-heading transition-colors mb-1"
                             aria-expanded={!filtrosColapsados}
                             aria-controls="filtros-catalogo-panel"
@@ -118,10 +128,15 @@ export const CatalogoCuestionarios: React.FC<Props> = ({
                         </button>
                         <div
                             id="filtros-catalogo-panel"
+                            onTransitionEnd={(e) => {
+                                if (e.target === e.currentTarget && !filtrosColapsados) {
+                                    setOverflowVisible(true);
+                                }
+                            }}
                             style={{
                                 maxHeight: filtrosColapsados ? '0px' : '300px',
                                 opacity: filtrosColapsados ? 0 : 1,
-                                overflow: 'hidden',
+                                overflow: overflowVisible ? 'visible' : 'hidden',
                                 transition: 'max-height 0.3s ease, opacity 0.2s ease',
                             }}
                         >
