@@ -1,4 +1,4 @@
-import { useReducer, useMemo, useCallback } from 'react';
+import { useReducer, useMemo, useCallback, useEffect } from 'react';
 import type { Pregunta, CuestionarioMeta } from '../types';
 
 // ═══════════════════════════════════════════════════════
@@ -119,7 +119,31 @@ interface UseFiltrosOpts {
 }
 
 export function useFiltros({ preguntasEditadas, catalogoFiltrado, hayFiltrosCatalogo }: UseFiltrosOpts) {
-    const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
+    // Inicializar desde localStorage si existe
+    const init = (): FiltrosState => {
+        if (typeof window !== 'undefined') {
+            try {
+                const stored = localStorage.getItem('filtrosGenerales');
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    return {
+                        ...INITIAL_STATE,
+                        ...parsed,
+                    };
+                }
+            } catch (e) {
+                console.error("Error leyendo filtros generales de localStorage", e);
+            }
+        }
+        return INITIAL_STATE;
+    };
+
+    const [state, dispatch] = useReducer(reducer, INITIAL_STATE, init);
+
+    // Guardar en localStorage cada vez que cambie el estado
+    useEffect(() => {
+        localStorage.setItem('filtrosGenerales', JSON.stringify(state));
+    }, [state]);
 
     // ——— Opciones disponibles por filtro ———
     const materiasDisponibles = useMemo(() =>

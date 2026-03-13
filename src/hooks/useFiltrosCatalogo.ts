@@ -1,4 +1,4 @@
-import { useReducer, useMemo, useCallback } from 'react';
+import { useReducer, useMemo, useCallback, useEffect } from 'react';
 import type { CuestionarioMeta } from '../types';
 
 // ——— Estado ———
@@ -35,8 +35,37 @@ function reducer(state: FiltrosCatalogoState, action: CatAction): FiltrosCatalog
 }
 
 // ——— Hook ———
+// ——— Hook ———
 export function useFiltrosCatalogo(catalogo: CuestionarioMeta[]) {
-    const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
+    // Inicializar desde localStorage si existe, respetando la estructura del estado
+    const init = (): FiltrosCatalogoState => {
+        if (typeof window !== 'undefined') {
+            try {
+                const stored = localStorage.getItem('filtrosCatalogo');
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    // Validar y mantener la forma del estado por si hay versiones antiguas o datos corruptos
+                    return {
+                        versiones: Array.isArray(parsed.versiones) ? parsed.versiones : INITIAL_STATE.versiones,
+                        tipos: Array.isArray(parsed.tipos) ? parsed.tipos : INITIAL_STATE.tipos,
+                        estados: Array.isArray(parsed.estados) ? parsed.estados : INITIAL_STATE.estados,
+                        so: Array.isArray(parsed.so) ? parsed.so : INITIAL_STATE.so,
+                        ofimatica: Array.isArray(parsed.ofimatica) ? parsed.ofimatica : INITIAL_STATE.ofimatica,
+                    };
+                }
+            } catch (e) {
+                console.error("Error leyendo filtros del catálogo de localStorage", e);
+            }
+        }
+        return INITIAL_STATE;
+    };
+
+    const [state, dispatch] = useReducer(reducer, INITIAL_STATE, init);
+
+    // Guardar en localStorage cada vez que cambie el estado
+    useEffect(() => {
+        localStorage.setItem('filtrosCatalogo', JSON.stringify(state));
+    }, [state]);
 
     // Opciones disponibles
     const versionesDisponibles = useMemo(() => Array.from(new Set(catalogo.map(c => c.version).filter(Boolean))).sort(), [catalogo]);
