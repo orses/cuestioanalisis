@@ -11,7 +11,11 @@ import type { Pregunta, CuestionarioMeta } from '../types';
  * Admite 'Y', 'AND', espacio como operadores de suma implícitos.
  * Admite 'NO', 'NOT', '-' como operadores de negación.
  */
-function cumpleBusquedaLogica(textoBusqueda: string, queryOriginal: string): boolean {
+// Regexp de caracteres no visibles — igual que en parser.ts
+const REGEX_INVISIBLES = /[\u00AD\u200B-\u200F\u202A-\u202E\u2028-\u2029\u2060-\u2064\u206A-\u206F\uFEFF\uFFF9-\uFFFB]/g;
+
+function cumpleBusquedaLogica(textoBusqueda: string, rawQuery: string): boolean {
+    const queryOriginal = rawQuery.replace(REGEX_INVISIBLES, '');
     if (!queryOriginal.trim()) return true;
 
     const orClauses = queryOriginal.split(/\s+OR\s+|\s+O\s+/i).filter(c => c.trim() !== '');
@@ -127,8 +131,19 @@ export function useFiltros({ preguntasEditadas, catalogoFiltrado, hayFiltrosCata
                 if (stored) {
                     const parsed = JSON.parse(stored);
                     return {
-                        ...INITIAL_STATE,
-                        ...parsed,
+                        materias:      Array.isArray(parsed.materias)      ? parsed.materias      : INITIAL_STATE.materias,
+                        bloques:       Array.isArray(parsed.bloques)        ? parsed.bloques       : INITIAL_STATE.bloques,
+                        temas:         Array.isArray(parsed.temas)          ? parsed.temas         : INITIAL_STATE.temas,
+                        aplicaciones:  Array.isArray(parsed.aplicaciones)  ? parsed.aplicaciones  : INITIAL_STATE.aplicaciones,
+                        correctas:     Array.isArray(parsed.correctas)      ? parsed.correctas     : INITIAL_STATE.correctas,
+                        anulada:       Array.isArray(parsed.anulada)        ? parsed.anulada       : INITIAL_STATE.anulada,
+                        años:          Array.isArray(parsed.años)           ? parsed.años          : INITIAL_STATE.años,
+                        organismos:    Array.isArray(parsed.organismos)     ? parsed.organismos    : INITIAL_STATE.organismos,
+                        escalas:       Array.isArray(parsed.escalas)        ? parsed.escalas       : INITIAL_STATE.escalas,
+                        accesos:       Array.isArray(parsed.accesos)        ? parsed.accesos       : INITIAL_STATE.accesos,
+                        ejercicios:    Array.isArray(parsed.ejercicios)     ? parsed.ejercicios    : INITIAL_STATE.ejercicios,
+                        cuestionarios: Array.isArray(parsed.cuestionarios)  ? parsed.cuestionarios : INITIAL_STATE.cuestionarios,
+                        busqueda:      typeof parsed.busqueda === 'string'  ? parsed.busqueda      : INITIAL_STATE.busqueda,
                     };
                 }
             } catch (e) {
