@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Claude Code (never commit local AI settings)
+.claude/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
