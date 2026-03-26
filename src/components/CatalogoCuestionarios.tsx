@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Upload, Check, Minus, RefreshCw, ChevronDown, Filter } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Upload, Check, Minus, RefreshCw, ChevronDown, ChevronUp, ChevronsUpDown, Filter } from 'lucide-react';
 import type { CuestionarioMeta } from '../types';
 import { MultiSelect } from './MultiSelect';
 
@@ -36,6 +36,17 @@ export const CatalogoCuestionarios: React.FC<Props> = ({
     const [busqueda, setBusqueda] = useState('');
     const [filtrosColapsados, setFiltrosColapsados] = useState(false);
     const [overflowVisible, setOverflowVisible] = useState(true);
+    const [sortKey, setSortKey] = useState<keyof CuestionarioMeta | null>(null);
+    const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+    const handleSort = (key: keyof CuestionarioMeta) => {
+        if (sortKey === key) {
+            setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortKey(key);
+            setSortDir('asc');
+        }
+    };
 
     const handleToggleFiltros = () => {
         if (!filtrosColapsados) {
@@ -46,14 +57,51 @@ export const CatalogoCuestionarios: React.FC<Props> = ({
         }
     };
 
-    const catalogoAMostrar = busqueda
-        ? catalogoFiltradoGlobal.filter(c =>
-            c.id_cuestionario.toLowerCase().includes(busqueda.toLowerCase()) ||
-            c.cuestionario.toLowerCase().includes(busqueda.toLowerCase()) ||
-            c.version.toLowerCase().includes(busqueda.toLowerCase()) ||
-            c.paquete_ofimatico.toLowerCase().includes(busqueda.toLowerCase())
-        )
-        : catalogoFiltradoGlobal;
+    const catalogoAMostrar = useMemo(() => {
+        const filtrado = busqueda
+            ? catalogoFiltradoGlobal.filter(c =>
+                c.id_cuestionario.toLowerCase().includes(busqueda.toLowerCase()) ||
+                c.cuestionario.toLowerCase().includes(busqueda.toLowerCase()) ||
+                c.version.toLowerCase().includes(busqueda.toLowerCase()) ||
+                c.paquete_ofimatico.toLowerCase().includes(busqueda.toLowerCase())
+            )
+            : catalogoFiltradoGlobal;
+
+        if (!sortKey) return filtrado;
+        return [...filtrado].sort((a, b) => {
+            const va = a[sortKey];
+            const vb = b[sortKey];
+            let cmp = 0;
+            if (typeof va === 'boolean' && typeof vb === 'boolean') {
+                cmp = Number(va) - Number(vb);
+            } else if (typeof va === 'number' && typeof vb === 'number') {
+                cmp = va - vb;
+            } else {
+                cmp = String(va ?? '').localeCompare(String(vb ?? ''), 'es');
+            }
+            return sortDir === 'asc' ? cmp : -cmp;
+        });
+    }, [catalogoFiltradoGlobal, busqueda, sortKey, sortDir]);
+
+    const SortIcon: React.FC<{ campo: keyof CuestionarioMeta }> = ({ campo }) => {
+        if (sortKey !== campo) return <ChevronsUpDown className="w-3 h-3 opacity-40" />;
+        return sortDir === 'asc'
+            ? <ChevronUp className="w-3 h-3" style={{ color: 'var(--accent-primary)' }} />
+            : <ChevronDown className="w-3 h-3" style={{ color: 'var(--accent-primary)' }} />;
+    };
+
+    const Th: React.FC<{ campo: keyof CuestionarioMeta; label: string; align?: 'left' | 'right' | 'center' }> = ({ campo, label, align = 'left' }) => (
+        <th className={`p-0 font-semibold text-muted whitespace-nowrap`}>
+            <button
+                onClick={() => handleSort(campo)}
+                className={`flex items-center gap-1 w-full px-2 py-2 hover:text-heading transition-colors ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : 'justify-start'}`}
+                style={{ fontWeight: 600, fontSize: 'inherit' }}
+            >
+                {label}
+                <SortIcon campo={campo} />
+            </button>
+        </th>
+    );
 
     const BoolIcon: React.FC<{ valor: boolean }> = ({ valor }) => (
         valor
@@ -166,19 +214,19 @@ export const CatalogoCuestionarios: React.FC<Props> = ({
                         <table className="w-full text-xs" style={{ borderCollapse: 'collapse' }}>
                             <thead>
                                 <tr style={{ borderBottom: '2px solid var(--border-secondary)' }}>
-                                    <th className="text-left p-2 font-semibold text-muted whitespace-nowrap">ID</th>
-                                    <th className="text-left p-2 font-semibold text-muted whitespace-nowrap">Cuestionario</th>
-                                    <th className="text-left p-2 font-semibold text-muted whitespace-nowrap">Versión</th>
-                                    <th className="text-left p-2 font-semibold text-muted whitespace-nowrap">Tipo</th>
-                                    <th className="text-left p-2 font-semibold text-muted whitespace-nowrap">Estado</th>
-                                    <th className="text-right p-2 font-semibold text-muted whitespace-nowrap">N.º preg.</th>
-                                    <th className="text-left p-2 font-semibold text-muted whitespace-nowrap">SO</th>
-                                    <th className="text-left p-2 font-semibold text-muted whitespace-nowrap">Paquete ofimático</th>
-                                    <th className="text-center p-2 font-semibold text-muted whitespace-nowrap">Texto</th>
-                                    <th className="text-center p-2 font-semibold text-muted whitespace-nowrap">Cálculo</th>
-                                    <th className="text-center p-2 font-semibold text-muted whitespace-nowrap">SGBD</th>
-                                    <th className="text-center p-2 font-semibold text-muted whitespace-nowrap">Present.</th>
-                                    <th className="text-center p-2 font-semibold text-muted whitespace-nowrap">Correo</th>
+                                    <Th campo="id_cuestionario" label="ID" />
+                                    <Th campo="cuestionario" label="Cuestionario" />
+                                    <Th campo="version" label="Versión" />
+                                    <Th campo="tipo" label="Tipo" />
+                                    <Th campo="estado" label="Estado" />
+                                    <Th campo="num_preguntas" label="N.º preg." align="right" />
+                                    <Th campo="sistema_operativo" label="SO" />
+                                    <Th campo="paquete_ofimatico" label="Paquete ofimático" />
+                                    <Th campo="procesador_texto" label="Texto" align="center" />
+                                    <Th campo="hoja_de_calculo" label="Cálculo" align="center" />
+                                    <Th campo="sgbd" label="SGBD" align="center" />
+                                    <Th campo="presentaciones" label="Present." align="center" />
+                                    <Th campo="cliente_correo" label="Correo" align="center" />
                                 </tr>
                             </thead>
                             <tbody>
