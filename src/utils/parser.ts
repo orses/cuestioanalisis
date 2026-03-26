@@ -18,7 +18,7 @@ function normalizarTextoVisual(txt: string): string {
     if (!txt) return '';
     return txt
         .replace(/[\u2013\u2014]/g, '-') // Reemplazar en-dash o em-dash por guión simple
-        .replace(/[\u200B-\u200D\uFEFF]/g, '') // Eliminar caracteres invisibles (zero-width)
+        .replace(/[\u00AD\u200B-\u200F\u202A-\u202E\u2028-\u2029\u2060-\u2064\u206A-\u206F\uFEFF\uFFF9-\uFFFB]/g, '') // Eliminar caracteres invisibles (zero-width, bidi override, soft-hyphen, Trojan Source)
         .replace(/\s+/g, ' ')            // Colapsar todos los espacios (incluidos no separables o múltiples) a 1
         .trim();
 }

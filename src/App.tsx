@@ -22,6 +22,13 @@ import { guardarDataset, recuperarDataset, guardarCatalogo, recuperarCatalogo } 
 import { descargarInforme } from './utils/generarInforme';
 import Papa from 'papaparse';
 
+// Claves editables de Pregunta — protege contra prototype pollution en guardarEdicion
+const ALLOWED_EDICION_KEYS = new Set<string>([
+  'materia', 'bloque', 'tema', 'aplicacion',
+  'enunciado', 'opciones', 'correcta', 'anulada',
+  'observaciones', 'conceptos_clave',
+]);
+
 function App() {
   // ——— Dataset ———
   const [dataset, setDataset] = useState<DatasetAnalisis | null>(null);
@@ -195,9 +202,12 @@ function App() {
 
   // ——— Guardar edición de una pregunta ———
   const guardarEdicion = useCallback((id: string, cambios: Partial<Pregunta>) => {
+    const cambiosValidados = Object.fromEntries(
+      Object.entries(cambios).filter(([k]) => ALLOWED_EDICION_KEYS.has(k))
+    ) as Partial<Pregunta>;
     setEdiciones(prev => ({
       ...prev,
-      [id]: { ...(prev[id] || {}), ...cambios },
+      [id]: { ...(prev[id] || {}), ...cambiosValidados },
     }));
   }, []);
 
