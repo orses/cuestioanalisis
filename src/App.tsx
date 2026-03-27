@@ -97,13 +97,18 @@ function App() {
     return () => window.removeEventListener('keydown', handleEsc);
   }, [preguntaAExpandir]);
 
-  // ——— Preguntas con ediciones aplicadas ———
+  // ——— Preguntas con ediciones aplicadas (deduplicadas por cuestionario+id) ———
   const preguntasEditadas = useMemo(() => {
     if (!dataset) return [];
-    return dataset.preguntas.map(p => {
-      const edit = ediciones[p.id];
-      return edit ? { ...p, ...edit } : p;
-    });
+    const seen = new Set<string>();
+    return dataset.preguntas
+      .filter(p => {
+        const key = `${p.id_cuestionario}::${p.id}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .map(p => { const edit = ediciones[p.id]; return edit ? { ...p, ...edit } : p; });
   }, [dataset, ediciones]);
 
   // ——— Hooks de filtros ———
@@ -147,8 +152,13 @@ function App() {
       const nuevosCuestionarios = resultados.flatMap(r => r.cuestionarios_cargados);
       const nombres = archivos.map(a => a.file.name);
 
+      const todasPreguntas = dataset ? [...dataset.preguntas, ...nuevasPreguntas] : nuevasPreguntas;
+      const preguntasDedup = Array.from(
+        todasPreguntas.reduce((m, p) => m.set(`${p.id_cuestionario}::${p.id}`, p), new Map<string, (typeof todasPreguntas)[0]>()).values()
+      );
+
       const nuevoDataset: DatasetAnalisis = {
-        preguntas: dataset ? [...dataset.preguntas, ...nuevasPreguntas] : nuevasPreguntas,
+        preguntas: preguntasDedup,
         conceptos_globales: dataset ? [...dataset.conceptos_globales, ...nuevosConceptos] : nuevosConceptos,
         ejercicios_unicos: Array.from(new Set([...(dataset?.ejercicios_unicos || []), ...nuevosEjercicios])),
         cuestionarios_cargados: Array.from(new Set([...(dataset?.cuestionarios_cargados || []), ...nuevosCuestionarios])),
@@ -425,7 +435,6 @@ function App() {
                 onFiltrarEscala={(e) => filtros.setEscalas([e])}
                 onFiltrarAcceso={(a) => filtros.setAccesos([a])}
                 onFiltrarEjercicio={(e) => filtros.setEjercicios([e])}
-                preguntaExpandida={preguntaAExpandir}
               onVerPregunta={navegarAPregunta}
               />
             </div>

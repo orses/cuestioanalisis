@@ -217,8 +217,14 @@ export function useFiltros({ preguntasEditadas, catalogoFiltrado, hayFiltrosCata
 
     // ——— Preguntas filtradas ———
     const preguntasFiltradas = useMemo(() => {
-        return preguntasEditadas.filter(p => {
-            if (state.materias.length > 0 && !state.materias.includes(p.materia.toString())) return false;
+        const resultado = preguntasEditadas.filter(p => {
+            if (state.materias.length > 0) {
+                const materiaLow = p.materia.toString().toLowerCase().trim();
+                const materiasLow = state.materias.map(m => m.toLowerCase().trim());
+                if (!materiasLow.includes(materiaLow)) {
+                    return false;
+                }
+            }
             if (state.bloques.length > 0 && !state.bloques.includes(p.bloque)) return false;
             if (state.temas.length > 0 && !state.temas.includes(p.tema)) return false;
             if (state.aplicaciones.length > 0 && !state.aplicaciones.includes(p.aplicacion)) return false;
@@ -258,6 +264,7 @@ export function useFiltros({ preguntasEditadas, catalogoFiltrado, hayFiltrosCata
 
             return true;
         });
+        return resultado;
     }, [preguntasEditadas, state, catalogoFiltrado, hayFiltrosCatalogo]);
 
     const hayFiltrosActivos = state.materias.length > 0 || state.bloques.length > 0 ||

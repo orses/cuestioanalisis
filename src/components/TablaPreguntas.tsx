@@ -141,7 +141,7 @@ export const TablaPreguntas: React.FC<TablaPreguntasProps> = ({ preguntas, onGua
                             </tr>
                         ) : (
                             preguntas.map((pregunta) => (
-                                <React.Fragment key={pregunta.id}>
+                                <React.Fragment key={`${pregunta.id_cuestionario}::${pregunta.id}`}>
                                     {!soloDetalle && (
                                         <tr
                                             id={`tarjeta-${pregunta.id}`}
@@ -167,7 +167,7 @@ export const TablaPreguntas: React.FC<TablaPreguntasProps> = ({ preguntas, onGua
                                                         className="category-chip cursor-pointer hover:opacity-80 transition-opacity"
                                                         style={{ backgroundColor: getMateriaColor(pregunta.materia.toString()), fontSize: '10px', padding: '2px 8px', width: '130px', display: 'inline-block', textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                                                         title={`Filtrar por materia: ${pregunta.materia}`}
-                                                        onClick={(e) => { e.stopPropagation(); onFiltrarMateria?.(pregunta.materia.toString()); }}
+                                                        onClick={(e) => { e.stopPropagation(); onFiltrarMateria?.(pregunta.materia.toString().toLowerCase().trim()); }}
                                                     >
                                                         {pregunta.materia.toString().charAt(0).toUpperCase() + pregunta.materia.toString().slice(1)}
                                                     </span>
@@ -431,7 +431,7 @@ export const TablaPreguntas: React.FC<TablaPreguntasProps> = ({ preguntas, onGua
                                                                             </div>
                                                                             <div>
                                                                                 <span className="block text-[10px] text-muted uppercase mb-0.5">Materia</span>
-                                                                                <span className="font-medium text-heading cursor-pointer hover:underline" style={{ textTransform: 'capitalize' }} onClick={(e) => { e.stopPropagation(); onFiltrarMateria?.(pregunta.materia.toString()); }} title={`Filtrar por materia: ${pregunta.materia}`}>{pregunta.materia.toString()}</span>
+                                                                                <span className="font-medium text-heading cursor-pointer hover:underline" style={{ textTransform: 'capitalize' }} onClick={(e) => { e.stopPropagation(); onFiltrarMateria?.(pregunta.materia.toString().toLowerCase().trim()); }} title={`Filtrar por materia: ${pregunta.materia}`}>{pregunta.materia.toString()}</span>
                                                                             </div>
                                                                             <div>
                                                                                 <span className="block text-[10px] text-muted uppercase mb-0.5">Bloque</span>
