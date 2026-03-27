@@ -6,9 +6,10 @@ import { getMateriaColor as getColorMateria } from '../utils/colores';
 
 interface ResumenProps {
     preguntas: Pregunta[];
+    onVerEjercicio?: (organismo: string, escala: string, año: string, acceso: string, tipo: string) => void;
 }
 
-export const Resumen: React.FC<ResumenProps> = ({ preguntas }) => {
+export const Resumen: React.FC<ResumenProps> = ({ preguntas, onVerEjercicio }) => {
     // ——— Sección activa del sidebar ———
     const [seccionActivaRes, setSeccionActivaRes] = useState<string>('sec-kpis');
 
@@ -371,10 +372,16 @@ export const Resumen: React.FC<ResumenProps> = ({ preguntas }) => {
                                 </thead>
                                 <tbody>
                                     {distribucionEjercicios.map((d, i) => (
-                                        <tr key={d.ejercicio} className="table-row-hover" style={{
-                                            borderBottom: '1px solid var(--border-secondary)',
-                                            backgroundColor: i % 2 === 0 ? 'transparent' : 'var(--bg-tertiary)',
-                                        }}>
+                                        <tr
+                                            key={d.ejercicio}
+                                            className="table-row-hover"
+                                            onClick={onVerEjercicio ? () => onVerEjercicio(d.organismo, d.escala, String(d.año), d.acceso, d.tipo) : undefined}
+                                            style={{
+                                                borderBottom: '1px solid var(--border-secondary)',
+                                                backgroundColor: i % 2 === 0 ? 'transparent' : 'var(--bg-tertiary)',
+                                                cursor: onVerEjercicio ? 'pointer' : 'default',
+                                            }}
+                                        >
                                             <td style={{ padding: '5px 10px', fontWeight: 600, color: 'var(--text-primary)' }}>{d.organismo || '—'}</td>
                                             <td style={{ padding: '5px 10px', color: 'var(--text-primary)' }}>
                                                 {({ AUX: 'Auxiliar', ADV: 'Administrativo', PSX: 'Servicios Grales.' } as Record<string, string>)[d.escala] || d.escala || '—'}

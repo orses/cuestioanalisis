@@ -52,7 +52,11 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             <div className="max-w-[1400px] mx-auto px-4 py-3">
                 <div className="flex items-center justify-between">
                     <div className="flex-1 min-w-0 pr-4">
-                        <h1 className="text-xl font-bold text-heading truncate">Análisis de Oposiciones</h1>
+                        <h1
+                            className="text-xl font-bold text-heading truncate cursor-pointer hover:opacity-75 transition-opacity"
+                            onClick={() => onSetVista('resumen')}
+                            title="Ir al resumen"
+                        >Análisis de Oposiciones</h1>
                         <p className="text-sm text-muted truncate" title={nombresArchivos.join(', ')}>
                             {nombresArchivos.length > 1
                                 ? `${nombresArchivos.length} archivos combinados`

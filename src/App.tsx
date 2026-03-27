@@ -386,7 +386,17 @@ function App() {
 
         {vistaActual === 'resumen' && (
           <div id="panel-resumen" role="tabpanel" className="animate-fade-slide">
-            <Resumen preguntas={filtros.preguntasFiltradas} />
+            <Resumen
+              preguntas={filtros.preguntasFiltradas}
+              onVerEjercicio={(organismo, escala, año, acceso, tipo) => {
+                filtros.setOrganismos([organismo]);
+                filtros.setEscalas([escala]);
+                filtros.setAños([año]);
+                filtros.setAccesos([acceso]);
+                filtros.setEjercicios([tipo]);
+                setVistaActual('ejercicios');
+              }}
+            />
           </div>
         )}
 
