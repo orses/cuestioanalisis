@@ -100,44 +100,34 @@ export const ModalPregunta: React.FC<ModalPreguntaProps> = ({
                     style={{ borderColor: 'var(--border-secondary)' }}
                     onClick={e => e.stopPropagation()}
                 >
-                    {/* Cabecera */}
-                    <div className="sticky top-0 z-10 border-b bg-card" style={{ borderColor: 'var(--border-secondary)' }}>
-                        <div className="flex items-center justify-between px-5 pt-4 pb-2">
-                            <div className="flex flex-col gap-0.5 min-w-0">
-                                <h3 className="text-base font-bold text-heading leading-tight">Detalle de la pregunta</h3>
-                                {cuestionarioNombre && (
+                    {/* Cabecera — una sola línea */}
+                    <div className="sticky top-0 z-10 flex items-center gap-3 px-5 py-3 border-b bg-card" style={{ borderColor: 'var(--border-secondary)' }}>
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <h3 className="text-sm font-bold text-heading whitespace-nowrap">Detalle de la pregunta</h3>
+                            {cuestionarioNombre && (
+                                <>
+                                    <span className="text-muted">·</span>
                                     <span className="text-sm text-muted truncate">{cuestionarioNombre}</span>
-                                )}
-                            </div>
-                            <button
-                                onClick={onCerrar}
-                                className="p-2 rounded-lg hover:bg-muted transition-colors ml-4 flex-shrink-0"
-                            >
-                                <X className="w-5 h-5 text-muted hover:text-red-500" />
-                            </button>
+                                </>
+                            )}
+                            {hasNav && (
+                                <>
+                                    <span className="text-muted flex-shrink-0">·</span>
+                                    <span className="text-sm font-semibold flex-shrink-0" style={{ color: 'var(--accent-primary)' }}>
+                                        {navIdx + 1} / {navList.length}
+                                    </span>
+                                </>
+                            )}
                         </div>
-                        {hasNav && (
-                            <div className="flex items-center gap-3 px-5 pb-3">
-                                <span className="text-sm font-semibold" style={{ color: 'var(--accent-primary)' }}>
-                                    {navIdx + 1}
-                                </span>
-                                <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                                    <div
-                                        className="h-full rounded-full transition-all"
-                                        style={{
-                                            backgroundColor: 'var(--accent-primary)',
-                                            width: `${((navIdx + 1) / navList.length) * 100}%`,
-                                        }}
-                                    />
-                                </div>
-                                <span className="text-sm text-muted font-medium">
-                                    {navList.length}
-                                </span>
-                            </div>
-                        )}
+                        <button
+                            onClick={onCerrar}
+                            className="p-1.5 rounded-lg hover:bg-muted transition-colors flex-shrink-0"
+                        >
+                            <X className="w-5 h-5 text-muted hover:text-red-500" />
+                        </button>
                     </div>
 
-                    <div className="p-1 sm:p-6">
+                    <div className="p-2 sm:p-4">
                         <TablaPreguntas
                             preguntas={[pregunta]}
                             onGuardarEdicion={onGuardarEdicion}

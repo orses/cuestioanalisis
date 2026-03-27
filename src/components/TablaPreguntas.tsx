@@ -216,15 +216,15 @@ export const TablaPreguntas: React.FC<TablaPreguntasProps> = ({ preguntas, onGua
                                     {
                                         (expandidas.has(pregunta.id) || soloDetalle) && (
                                             <tr className="bg-muted">
-                                                <td colSpan={5} className="px-4 py-6" style={{ borderBottom: '2px solid var(--accent-primary)' }}>
-                                                    <div className="pl-10 pr-6 max-w-5xl">
+                                                <td colSpan={5} className={soloDetalle ? "px-4 py-3" : "px-4 py-6"} style={{ borderBottom: '2px solid var(--accent-primary)' }}>
+                                                    <div className={soloDetalle ? "max-w-5xl" : "pl-10 pr-6 max-w-5xl"}>
 
                                                         {/* Botón editar / guardar / copiar */}
                                                         <div className="flex items-center justify-between mb-4">
                                                             <div className="flex items-center gap-3">
-                                                                <h4 className="text-base font-semibold text-heading">
+                                                                {!soloDetalle && <h4 className="text-base font-semibold text-heading">
                                                                     {editandoId === pregunta.id ? 'Editando la pregunta' : 'Detalle de la pregunta'}
-                                                                </h4>
+                                                                </h4>}
                                                                 {!editandoId && (
                                                                     <button
                                                                         onClick={(e) => handleCopiar(e, pregunta)}
