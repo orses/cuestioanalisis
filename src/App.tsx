@@ -416,6 +416,7 @@ function App() {
                 onFiltrarAcceso={(a) => filtros.setAccesos([a])}
                 onFiltrarEjercicio={(e) => filtros.setEjercicios([e])}
                 preguntaExpandida={preguntaAExpandir}
+              onVerPregunta={navegarAPregunta}
               />
             </div>
           </div>

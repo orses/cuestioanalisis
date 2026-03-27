@@ -54,7 +54,7 @@ export const ModalPregunta: React.FC<ModalPreguntaProps> = ({
             onClick={onCerrar}
         >
             {/* Centrador — pointer-events-none para que el fondo cierre el modal */}
-            <div className="flex justify-center pt-10 h-full pointer-events-none px-14">
+            <div className="flex justify-center pt-10 h-full pointer-events-none px-20">
                 {/* Wrapper relativo: las flechas se anclan a sus bordes */}
                 <div className="relative w-full max-w-5xl">
 
@@ -66,13 +66,13 @@ export const ModalPregunta: React.FC<ModalPreguntaProps> = ({
                             title="Anterior (←)"
                             className="absolute top-1/2 -translate-y-1/2 pointer-events-auto flex items-center justify-center rounded-full shadow-2xl transition-opacity disabled:opacity-20 disabled:cursor-not-allowed"
                             style={{
-                                right: '100%', marginRight: 8,
-                                width: 44, height: 44,
+                                right: '100%', marginRight: 10,
+                                width: 64, height: 64,
                                 backgroundColor: 'var(--accent-primary)',
                                 color: '#fff',
                             }}
                         >
-                            <ChevronLeft className="w-6 h-6" />
+                            <ChevronLeft className="w-9 h-9" />
                         </button>
                     )}
 
@@ -84,13 +84,13 @@ export const ModalPregunta: React.FC<ModalPreguntaProps> = ({
                             title="Siguiente (→)"
                             className="absolute top-1/2 -translate-y-1/2 pointer-events-auto flex items-center justify-center rounded-full shadow-2xl transition-opacity disabled:opacity-20 disabled:cursor-not-allowed"
                             style={{
-                                left: '100%', marginLeft: 8,
-                                width: 44, height: 44,
+                                left: '100%', marginLeft: 10,
+                                width: 64, height: 64,
                                 backgroundColor: 'var(--accent-primary)',
                                 color: '#fff',
                             }}
                         >
-                            <ChevronRight className="w-6 h-6" />
+                            <ChevronRight className="w-9 h-9" />
                         </button>
                     )}
 
