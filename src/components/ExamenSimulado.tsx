@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import type { Pregunta } from '../types';
-import { Play, StopCircle, RotateCcw, Clock, CheckCircle2, XCircle, Trophy } from 'lucide-react';
+import { Play, StopCircle, RotateCcw, Clock, CheckCircle2, XCircle, Trophy, ChevronDown } from 'lucide-react';
 import { AnalisisErrores } from './AnalisisErrores';
 
 interface ExamenSimuladoProps {
@@ -14,6 +14,109 @@ interface RespuestaExamen {
 }
 
 type EstadoExamen = 'configurar' | 'en-curso' | 'finalizado';
+
+const COLORES_LETRA: Record<string, string> = { A: '#3b82f6', B: '#10b981', C: '#f59e0b', D: '#8b5cf6' };
+
+const RevisionRespuestas: React.FC<{ preguntasExamen: Pregunta[]; respuestas: RespuestaExamen[] }> = ({ preguntasExamen, respuestas }) => {
+    const [expandidas, setExpandidas] = useState<Set<number>>(new Set());
+
+    const toggle = (i: number) => setExpandidas(prev => {
+        const next = new Set(prev);
+        next.has(i) ? next.delete(i) : next.add(i);
+        return next;
+    });
+
+    return (
+        <div style={{ padding: '16px', borderRadius: '10px', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-secondary)' }}>
+            <h3 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '12px' }}>
+                Revisión de respuestas
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {preguntasExamen.map((p, i) => {
+                    const r = respuestas[i];
+                    const acerto = r.correcta;
+                    const respondio = r.respuesta !== null;
+                    const abierta = expandidas.has(i);
+                    const borderColor = !respondio ? 'var(--border-secondary)' : acerto ? 'var(--accent-success)' : 'var(--accent-danger)';
+                    const bgColor = !respondio ? 'var(--bg-tertiary)' : acerto ? 'rgba(34,197,94,0.06)' : 'rgba(220,38,38,0.06)';
+
+                    return (
+                        <div key={p.id} style={{ borderRadius: '6px', border: `1px solid ${borderColor}`, backgroundColor: bgColor, overflow: 'hidden' }}>
+                            {/* Cabecera clicable */}
+                            <button
+                                onClick={() => toggle(i)}
+                                style={{
+                                    width: '100%', display: 'flex', alignItems: 'flex-start', gap: '10px',
+                                    padding: '10px 14px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left',
+                                }}
+                            >
+                                <div style={{ flexShrink: 0, marginTop: '2px' }}>
+                                    {!respondio
+                                        ? <span style={{ fontSize: '14px', color: 'var(--text-tertiary)' }}>○</span>
+                                        : acerto
+                                            ? <CheckCircle2 className="w-4 h-4" style={{ color: 'var(--accent-success)' }} />
+                                            : <XCircle className="w-4 h-4" style={{ color: 'var(--accent-danger)' }} />
+                                    }
+                                </div>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ fontSize: '12px', color: 'var(--text-primary)', lineHeight: 1.5, marginBottom: '3px' }}>
+                                        <span style={{ fontWeight: 700 }}>{i + 1}.</span> {p.enunciado.substring(0, 120)}{p.enunciado.length > 120 ? '…' : ''}
+                                    </div>
+                                    <div style={{ fontSize: '11px', display: 'flex', gap: '12px' }}>
+                                        {respondio && !acerto && (
+                                            <span style={{ color: 'var(--accent-danger)' }}>Tu respuesta: {r.respuesta}</span>
+                                        )}
+                                        <span style={{ color: 'var(--accent-success)', fontWeight: 600 }}>Correcta: {p.correcta}</span>
+                                    </div>
+                                </div>
+                                <ChevronDown className="w-4 h-4 flex-shrink-0 mt-0.5" style={{
+                                    color: 'var(--text-tertiary)',
+                                    transform: abierta ? 'rotate(180deg)' : 'rotate(0deg)',
+                                    transition: 'transform 0.2s',
+                                }} />
+                            </button>
+
+                            {/* Detalle expandido */}
+                            {abierta && (
+                                <div style={{ padding: '0 14px 14px 34px', borderTop: `1px solid ${borderColor}` }}>
+                                    <p style={{ fontSize: '13px', color: 'var(--text-primary)', lineHeight: 1.7, margin: '10px 0 12px' }}>
+                                        {p.enunciado}
+                                    </p>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                        {(['A', 'B', 'C', 'D'] as const).map(letra => {
+                                            const texto = p.opciones[letra];
+                                            if (!texto) return null;
+                                            const esCorrecta = letra === p.correcta;
+                                            const esSeleccion = letra === r.respuesta;
+                                            const color = esCorrecta ? 'var(--accent-success)' : (esSeleccion && !esCorrecta) ? 'var(--accent-danger)' : 'var(--border-secondary)';
+                                            return (
+                                                <div key={letra} style={{
+                                                    display: 'flex', gap: '8px', alignItems: 'flex-start',
+                                                    padding: '7px 10px', borderRadius: '6px',
+                                                    border: `1.5px solid ${color}`,
+                                                    backgroundColor: esCorrecta ? 'rgba(34,197,94,0.08)' : (esSeleccion && !esCorrecta) ? 'rgba(220,38,38,0.08)' : 'transparent',
+                                                }}>
+                                                    <span style={{
+                                                        width: '20px', height: '20px', borderRadius: '50%', flexShrink: 0,
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                        fontSize: '10px', fontWeight: 800,
+                                                        backgroundColor: esCorrecta ? 'var(--accent-success)' : (esSeleccion && !esCorrecta) ? 'var(--accent-danger)' : COLORES_LETRA[letra],
+                                                        color: '#fff',
+                                                    }}>{letra}</span>
+                                                    <span style={{ fontSize: '12px', color: 'var(--text-primary)', lineHeight: 1.5 }}>{texto}</span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+};
 
 export const ExamenSimulado: React.FC<ExamenSimuladoProps> = ({ preguntas }) => {
     const [estado, setEstado] = useState<EstadoExamen>('configurar');
@@ -441,55 +544,7 @@ export const ExamenSimulado: React.FC<ExamenSimuladoProps> = ({ preguntas }) => 
             <AnalisisErrores preguntas={preguntasExamen} respuestas={respuestas} />
 
             {/* Revisión */}
-            <div style={{
-                padding: '16px', borderRadius: '10px',
-                backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-secondary)',
-            }}>
-                <h3 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '12px' }}>
-                    Revisión de respuestas
-                </h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {preguntasExamen.map((p, i) => {
-                        const r = respuestas[i];
-                        const acerto = r.correcta;
-                        const respondio = r.respuesta !== null;
-                        return (
-                            <div key={p.id} style={{
-                                padding: '10px 14px', borderRadius: '6px',
-                                border: `1px solid ${!respondio ? 'var(--border-secondary)' : acerto ? 'var(--accent-success)' : 'var(--accent-danger)'}`,
-                                backgroundColor: !respondio ? 'var(--bg-tertiary)'
-                                    : acerto ? 'rgba(34,197,94,0.06)' : 'rgba(220,38,38,0.06)',
-                            }}>
-                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                                    <div style={{ flexShrink: 0, marginTop: '2px' }}>
-                                        {!respondio
-                                            ? <span style={{ fontSize: '14px', color: 'var(--text-tertiary)' }}>○</span>
-                                            : acerto
-                                                ? <CheckCircle2 className="w-4 h-4" style={{ color: 'var(--accent-success)' }} />
-                                                : <XCircle className="w-4 h-4" style={{ color: 'var(--accent-danger)' }} />
-                                        }
-                                    </div>
-                                    <div style={{ flex: 1 }}>
-                                        <div style={{ fontSize: '12px', color: 'var(--text-primary)', lineHeight: 1.5, marginBottom: '4px' }}>
-                                            <span style={{ fontWeight: 700 }}>{i + 1}.</span> {p.enunciado.substring(0, 150)}{p.enunciado.length > 150 ? '…' : ''}
-                                        </div>
-                                        <div style={{ fontSize: '11px', display: 'flex', gap: '12px' }}>
-                                            {respondio && !acerto && (
-                                                <span style={{ color: 'var(--accent-danger)' }}>
-                                                    Respuesta: {r.respuesta}
-                                                </span>
-                                            )}
-                                            <span style={{ color: 'var(--accent-success)', fontWeight: 600 }}>
-                                                Correcta: {p.correcta}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
+            <RevisionRespuestas preguntasExamen={preguntasExamen} respuestas={respuestas} />
 
             {/* Reiniciar */}
             <button
