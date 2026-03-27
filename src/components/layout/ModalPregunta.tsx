@@ -7,6 +7,7 @@ interface ModalPreguntaProps {
     preguntaId: string;
     preguntas: Pregunta[];
     preguntasNavegacion?: Pregunta[];
+    cuestionarioNombre?: string;
     onNavegar?: (id: string) => void;
     onCerrar: () => void;
     onGuardarEdicion: (id: string, cambios: Partial<Pregunta>) => void;
@@ -21,7 +22,7 @@ interface ModalPreguntaProps {
 }
 
 export const ModalPregunta: React.FC<ModalPreguntaProps> = ({
-    preguntaId, preguntas, preguntasNavegacion, onNavegar, onCerrar,
+    preguntaId, preguntas, preguntasNavegacion, cuestionarioNombre, onNavegar, onCerrar,
     onGuardarEdicion,
     onFiltrarMateria, onFiltrarBloque, onFiltrarTema, onFiltrarAplicacion,
     onFiltrarAño, onFiltrarEscala, onFiltrarAcceso, onFiltrarEjercicio,
@@ -32,6 +33,7 @@ export const ModalPregunta: React.FC<ModalPreguntaProps> = ({
     const navIdx = navList.findIndex(p => p.id === preguntaId);
     const prevId = navIdx > 0 ? navList[navIdx - 1].id : null;
     const nextId = navIdx >= 0 && navIdx < navList.length - 1 ? navList[navIdx + 1].id : null;
+    const hasNav = onNavegar && navList.length > 1;
 
     useEffect(() => {
         if (!onNavegar) return;
@@ -45,28 +47,28 @@ export const ModalPregunta: React.FC<ModalPreguntaProps> = ({
 
     if (!pregunta) return null;
 
-    const hasNav = onNavegar && navList.length > 1;
-
+    // El overlay es fixed inset-0, así que absolute = relativo al viewport
     return (
         <div
             className="fixed inset-0 z-[100] backdrop-blur-sm"
             style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
             onClick={onCerrar}
         >
-            {/* Flecha izquierda — fuera del modal, centrada verticalmente en la ventana */}
+            {/* Flecha izquierda — absolute dentro del overlay fixed = posición en viewport */}
             {hasNav && (
                 <button
                     onClick={e => { e.stopPropagation(); prevId && onNavegar!(prevId); }}
                     disabled={!prevId}
                     title="Anterior (←)"
-                    className="fixed left-3 top-1/2 -translate-y-1/2 z-[110] flex items-center justify-center rounded-full shadow-xl transition-all disabled:opacity-20 disabled:cursor-not-allowed"
+                    className="absolute top-1/2 -translate-y-1/2 z-[110] flex items-center justify-center rounded-full shadow-2xl transition-opacity disabled:opacity-20 disabled:cursor-not-allowed"
                     style={{
+                        left: 12,
                         width: 52, height: 52,
                         backgroundColor: 'var(--accent-primary)',
                         color: '#fff',
                     }}
                 >
-                    <ChevronLeft className="w-7 h-7" />
+                    <ChevronLeft className="w-8 h-8" />
                 </button>
             )}
 
@@ -76,41 +78,65 @@ export const ModalPregunta: React.FC<ModalPreguntaProps> = ({
                     onClick={e => { e.stopPropagation(); nextId && onNavegar!(nextId); }}
                     disabled={!nextId}
                     title="Siguiente (→)"
-                    className="fixed right-3 top-1/2 -translate-y-1/2 z-[110] flex items-center justify-center rounded-full shadow-xl transition-all disabled:opacity-20 disabled:cursor-not-allowed"
+                    className="absolute top-1/2 -translate-y-1/2 z-[110] flex items-center justify-center rounded-full shadow-2xl transition-opacity disabled:opacity-20 disabled:cursor-not-allowed"
                     style={{
+                        right: 12,
                         width: 52, height: 52,
                         backgroundColor: 'var(--accent-primary)',
                         color: '#fff',
                     }}
                 >
-                    <ChevronRight className="w-7 h-7" />
+                    <ChevronRight className="w-8 h-8" />
                 </button>
             )}
 
-            {/* Modal anclado arriba */}
-            <div className="flex justify-center pt-12 px-16 h-full pointer-events-none">
+            {/* Modal anclado arriba, con margen lateral para dejar ver las flechas */}
+            <div
+                className="flex justify-center pt-10 h-full pointer-events-none"
+                style={{ paddingLeft: 76, paddingRight: 76 }}
+            >
                 <div
                     className="bg-card w-full max-w-5xl max-h-[88vh] overflow-y-auto rounded-xl shadow-2xl relative border pointer-events-auto"
                     style={{ borderColor: 'var(--border-secondary)' }}
                     onClick={e => e.stopPropagation()}
                 >
-                    <div className="sticky top-0 z-10 flex items-center justify-between p-4 border-b bg-card" style={{ borderColor: 'var(--border-secondary)' }}>
-                        <div className="flex items-center gap-3">
-                            <h3 className="text-lg font-bold text-heading">Detalle de la pregunta</h3>
-                            {hasNav && (
-                                <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                                    style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-tertiary)' }}>
-                                    {navIdx + 1} / {navList.length}
-                                </span>
-                            )}
+                    {/* Cabecera */}
+                    <div className="sticky top-0 z-10 border-b bg-card" style={{ borderColor: 'var(--border-secondary)' }}>
+                        <div className="flex items-center justify-between px-5 pt-4 pb-2">
+                            <div className="flex flex-col gap-0.5 min-w-0">
+                                <h3 className="text-base font-bold text-heading leading-tight">Detalle de la pregunta</h3>
+                                {cuestionarioNombre && (
+                                    <span className="text-sm text-muted truncate">{cuestionarioNombre}</span>
+                                )}
+                            </div>
+                            <button
+                                onClick={onCerrar}
+                                className="p-2 rounded-lg hover:bg-muted transition-colors ml-4 flex-shrink-0"
+                            >
+                                <X className="w-5 h-5 text-muted hover:text-red-500" />
+                            </button>
                         </div>
-                        <button
-                            onClick={onCerrar}
-                            className="p-2 rounded-lg hover:bg-muted transition-colors"
-                        >
-                            <X className="w-5 h-5 text-muted hover:text-red-500" />
-                        </button>
+                        {hasNav && (
+                            <div className="flex items-center gap-3 px-5 pb-3">
+                                <span className="text-sm font-semibold" style={{ color: 'var(--accent-primary)' }}>
+                                    {navIdx + 1}
+                                </span>
+                                <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+                                    <div
+                                        className="h-full rounded-full transition-all"
+                                        style={{
+                                            backgroundColor: 'var(--accent-primary)',
+                                            width: `${((navIdx + 1) / navList.length) * 100}%`,
+                                        }}
+                                    />
+                                </div>
+                                <span className="text-sm text-muted font-medium">
+                                    {navList.length}
+                                </span>
+                            </div>
+                        )}
                     </div>
+
                     <div className="p-1 sm:p-6">
                         <TablaPreguntas
                             preguntas={[pregunta]}

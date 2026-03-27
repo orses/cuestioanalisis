@@ -514,6 +514,7 @@ function App() {
           preguntaId={preguntaAExpandir}
           preguntas={dataset.preguntas}
           preguntasNavegacion={filtros.preguntasFiltradas}
+          cuestionarioNombre={catalogo.find(c => c.id_cuestionario === dataset.preguntas.find(p => p.id === preguntaAExpandir)?.id_cuestionario)?.cuestionario}
           onNavegar={setPreguntaAExpandir}
           onCerrar={() => setPreguntaAExpandir(null)}
           onGuardarEdicion={guardarEdicion}
