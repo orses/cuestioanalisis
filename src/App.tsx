@@ -513,6 +513,8 @@ function App() {
         <ModalPregunta
           preguntaId={preguntaAExpandir}
           preguntas={dataset.preguntas}
+          preguntasNavegacion={filtros.preguntasFiltradas}
+          onNavegar={setPreguntaAExpandir}
           onCerrar={() => setPreguntaAExpandir(null)}
           onGuardarEdicion={guardarEdicion}
           onFiltrarMateria={crearFiltroDesdeModal(filtros.setMaterias)}
