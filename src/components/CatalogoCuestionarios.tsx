@@ -8,6 +8,7 @@ interface Props {
     catalogoFiltradoGlobal: CuestionarioMeta[];
     cuestionariosCargados: string[];
     onCargarCatalogo: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    onVerCuestionario?: (idCuestionario: string) => void;
     catVersionesDisponibles: string[];
     catVersionesActivas: string[];
     setCatVersionesActivas: (v: string[]) => void;
@@ -26,7 +27,7 @@ interface Props {
 }
 
 export const CatalogoCuestionarios: React.FC<Props> = ({
-    catalogo, catalogoFiltradoGlobal, cuestionariosCargados, onCargarCatalogo,
+    catalogo, catalogoFiltradoGlobal, cuestionariosCargados, onCargarCatalogo, onVerCuestionario,
     catVersionesDisponibles, catVersionesActivas, setCatVersionesActivas,
     catTiposDisponibles, catTiposActivos, setCatTiposActivos,
     catEstadosDisponibles, catEstadosActivos, setCatEstadosActivos,
@@ -236,10 +237,13 @@ export const CatalogoCuestionarios: React.FC<Props> = ({
                                         <tr
                                             key={c.id_cuestionario}
                                             className="table-row-hover"
+                                            onClick={cargado && onVerCuestionario ? () => onVerCuestionario(c.id_cuestionario) : undefined}
                                             style={{
                                                 borderBottom: '1px solid var(--border-secondary)',
                                                 backgroundColor: cargado ? 'rgba(var(--accent-success-rgb, 34,197,94), 0.08)' : 'transparent',
+                                                cursor: cargado && onVerCuestionario ? 'pointer' : 'default',
                                             }}
+                                            title={cargado && onVerCuestionario ? `Ver preguntas de ${c.id_cuestionario}` : undefined}
                                         >
                                             <td className="p-2 font-mono font-semibold whitespace-nowrap" style={{ color: cargado ? 'var(--accent-success)' : 'var(--text-primary)' }}>
                                                 {c.id_cuestionario}

@@ -467,6 +467,7 @@ function App() {
               catalogoFiltradoGlobal={catFiltros.catalogoFiltrado}
               cuestionariosCargados={dataset?.cuestionarios_cargados || []}
               onCargarCatalogo={handleCargarCatalogo}
+              onVerCuestionario={(id) => { filtros.setCuestionarios([id]); setVistaActual('ejercicios'); }}
               catVersionesDisponibles={catFiltros.disponibles.versiones} catVersionesActivas={catFiltros.state.versiones} setCatVersionesActivas={catFiltros.setVersiones}
               catTiposDisponibles={catFiltros.disponibles.tipos} catTiposActivos={catFiltros.state.tipos} setCatTiposActivos={catFiltros.setTipos}
               catEstadosDisponibles={catFiltros.disponibles.estados} catEstadosActivos={catFiltros.state.estados} setCatEstadosActivos={catFiltros.setEstados}

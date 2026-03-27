@@ -47,56 +47,55 @@ export const ModalPregunta: React.FC<ModalPreguntaProps> = ({
 
     if (!pregunta) return null;
 
-    // El overlay es fixed inset-0, así que absolute = relativo al viewport
     return (
         <div
             className="fixed inset-0 z-[100] backdrop-blur-sm"
             style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
             onClick={onCerrar}
         >
-            {/* Flecha izquierda — absolute dentro del overlay fixed = posición en viewport */}
-            {hasNav && (
-                <button
-                    onClick={e => { e.stopPropagation(); prevId && onNavegar!(prevId); }}
-                    disabled={!prevId}
-                    title="Anterior (←)"
-                    className="absolute top-1/2 -translate-y-1/2 z-[110] flex items-center justify-center rounded-full shadow-2xl transition-opacity disabled:opacity-20 disabled:cursor-not-allowed"
-                    style={{
-                        left: 12,
-                        width: 52, height: 52,
-                        backgroundColor: 'var(--accent-primary)',
-                        color: '#fff',
-                    }}
-                >
-                    <ChevronLeft className="w-8 h-8" />
-                </button>
-            )}
+            {/* Centrador — pointer-events-none para que el fondo cierre el modal */}
+            <div className="flex justify-center pt-10 h-full pointer-events-none px-14">
+                {/* Wrapper relativo: las flechas se anclan a sus bordes */}
+                <div className="relative w-full max-w-5xl">
 
-            {/* Flecha derecha */}
-            {hasNav && (
-                <button
-                    onClick={e => { e.stopPropagation(); nextId && onNavegar!(nextId); }}
-                    disabled={!nextId}
-                    title="Siguiente (→)"
-                    className="absolute top-1/2 -translate-y-1/2 z-[110] flex items-center justify-center rounded-full shadow-2xl transition-opacity disabled:opacity-20 disabled:cursor-not-allowed"
-                    style={{
-                        right: 12,
-                        width: 52, height: 52,
-                        backgroundColor: 'var(--accent-primary)',
-                        color: '#fff',
-                    }}
-                >
-                    <ChevronRight className="w-8 h-8" />
-                </button>
-            )}
+                    {/* Flecha izquierda — pegada al borde izquierdo del modal */}
+                    {hasNav && (
+                        <button
+                            onClick={e => { e.stopPropagation(); prevId && onNavegar!(prevId); }}
+                            disabled={!prevId}
+                            title="Anterior (←)"
+                            className="absolute top-1/2 -translate-y-1/2 pointer-events-auto flex items-center justify-center rounded-full shadow-2xl transition-opacity disabled:opacity-20 disabled:cursor-not-allowed"
+                            style={{
+                                right: '100%', marginRight: 8,
+                                width: 44, height: 44,
+                                backgroundColor: 'var(--accent-primary)',
+                                color: '#fff',
+                            }}
+                        >
+                            <ChevronLeft className="w-6 h-6" />
+                        </button>
+                    )}
 
-            {/* Modal anclado arriba, con margen lateral para dejar ver las flechas */}
-            <div
-                className="flex justify-center pt-10 h-full pointer-events-none"
-                style={{ paddingLeft: 76, paddingRight: 76 }}
-            >
+                    {/* Flecha derecha — pegada al borde derecho del modal */}
+                    {hasNav && (
+                        <button
+                            onClick={e => { e.stopPropagation(); nextId && onNavegar!(nextId); }}
+                            disabled={!nextId}
+                            title="Siguiente (→)"
+                            className="absolute top-1/2 -translate-y-1/2 pointer-events-auto flex items-center justify-center rounded-full shadow-2xl transition-opacity disabled:opacity-20 disabled:cursor-not-allowed"
+                            style={{
+                                left: '100%', marginLeft: 8,
+                                width: 44, height: 44,
+                                backgroundColor: 'var(--accent-primary)',
+                                color: '#fff',
+                            }}
+                        >
+                            <ChevronRight className="w-6 h-6" />
+                        </button>
+                    )}
+
                 <div
-                    className="bg-card w-full max-w-5xl max-h-[88vh] overflow-y-auto rounded-xl shadow-2xl relative border pointer-events-auto"
+                    className="bg-card w-full max-h-[88vh] overflow-y-auto rounded-xl shadow-2xl border pointer-events-auto"
                     style={{ borderColor: 'var(--border-secondary)' }}
                     onClick={e => e.stopPropagation()}
                 >
@@ -143,8 +142,9 @@ export const ModalPregunta: React.FC<ModalPreguntaProps> = ({
                             soloDetalle={true}
                         />
                     </div>
-                </div>
-            </div>
+                </div>{/* fin modal card */}
+                </div>{/* fin wrapper relativo */}
+            </div>{/* fin centrador */}
         </div>
     );
 };
