@@ -249,7 +249,7 @@ export const CatalogoCuestionarios: React.FC<Props> = ({
                                                 {c.id_cuestionario}
                                                 {cargado && <Check className="w-3.5 h-3.5 inline ml-1" style={{ color: 'var(--accent-success)' }} />}
                                             </td>
-                                            <td className="p-2 text-body">{c.cuestionario}</td>
+                                            <td className="p-2 text-body whitespace-nowrap">{c.cuestionario}</td>
                                             <td className="p-2 text-body whitespace-nowrap">{c.version}</td>
                                             <td className="p-2 text-body whitespace-nowrap">{c.tipo}</td>
                                             <td className="p-2 whitespace-nowrap">
