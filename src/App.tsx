@@ -392,7 +392,7 @@ function App() {
       )}
 
       {/* ———— CONTENIDO PRINCIPAL ———— */}
-      <main className="max-w-[1400px] mx-auto p-4 lg:p-6">
+      <main className="max-w-[1800px] mx-auto p-4 lg:p-6">
 
         {vistaActual === 'resumen' && (
           <div id="panel-resumen" role="tabpanel" className="animate-fade-slide">
