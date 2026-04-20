@@ -253,10 +253,13 @@ export const CatalogoCuestionarios: React.FC<Props> = ({
                                             <td className="p-2 text-body whitespace-nowrap">{c.version}</td>
                                             <td className="p-2 text-body whitespace-nowrap">{c.tipo}</td>
                                             <td className="p-2 whitespace-nowrap">
-                                                <span className="px-1.5 py-0.5 rounded text-xs font-medium" style={{
-                                                    backgroundColor: c.estado === 'actualizado' ? 'rgba(34,197,94,0.15)' : 'rgba(234,179,8,0.15)',
-                                                    color: c.estado === 'actualizado' ? 'var(--accent-success)' : '#ca8a04',
-                                                }}>
+                                                <span className="px-1.5 py-0.5 rounded text-xs font-medium" style={
+                                                    c.estado === 'actualizado'
+                                                        ? { backgroundColor: 'rgba(34,197,94,0.15)', color: 'var(--accent-success)' }
+                                                        : c.estado === 'revisado'
+                                                            ? { backgroundColor: 'rgba(59,130,246,0.15)', color: '#2563eb' }
+                                                            : { backgroundColor: 'rgba(234,179,8,0.15)', color: '#ca8a04' }
+                                                }>
                                                     {c.estado}
                                                 </span>
                                             </td>
