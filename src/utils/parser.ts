@@ -62,30 +62,26 @@ export const procesarCSV = (file: File, idCuestionarioManual?: string): Promise<
                 const conceptos_globales: ConceptoAdyacente[] = [];
                 const cuestionarios_set = new Set<string>();
                 const ejercicios_set = new Set<string>();
+                const idsUsados = new Map<string, number>();
 
                 results.data.forEach((rawRow: any) => {
                     const get = crearGetCampo(rawRow);
                     const idCuest = idCuestionarioManual || get('id_cuestionario') || '';
                     if (idCuest) cuestionarios_set.add(idCuest);
 
-                    let ejercicio = get('ejercicio') || get('id_ejercicio');
-                    let numeroStr = get('numero') || get('num_pregunta') || get('num') || get('nº') || get('n.º') || get('n');
-                    let id = '';
-                    if (!numeroStr) {
-                        const colId = get('id') || get('id_pregunta');
-                        if (colId && colId.includes('_')) {
-                            const partesId = colId.split('_');
-                            numeroStr = partesId.pop() || '0';
-                            ejercicio = ejercicio || partesId.join('_');
-                            id = colId;
-                        } else {
-                            numeroStr = '0';
-                        }
-                    }
+                    const ejercicio = get('ejercicio') || get('id_ejercicio');
+                    const numeroStr = get('numero') || get('num_pregunta') || get('num') || get('nº') || get('n.º') || get('n') || '0';
 
-                    if (!id) {
-                        id = `${ejercicio}_${numeroStr}`;
-                    }
+                    // id = id_cuestionario + ejercicio + numero (clave natural del dataset)
+                    const baseId = idCuest
+                        ? `${idCuest}_${ejercicio}_${numeroStr}`
+                        : `${ejercicio}_${numeroStr}`;
+
+                    // Si dos filas del mismo cuestionario producen la misma clave base, sufijo _dupN
+                    const key = `${idCuest}::${baseId}`;
+                    const nPrev = idsUsados.get(key) ?? 0;
+                    idsUsados.set(key, nPrev + 1);
+                    const id = nPrev === 0 ? baseId : `${baseId}_dup${nPrev}`;
                     ejercicios_set.add(ejercicio);
 
                     const opciones = {
