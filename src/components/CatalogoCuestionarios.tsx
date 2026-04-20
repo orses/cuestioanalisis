@@ -212,7 +212,7 @@ export const CatalogoCuestionarios: React.FC<Props> = ({
 
                     {/* Tabla */}
                     <div className="overflow-x-auto">
-                        <table className="w-full text-xs" style={{ borderCollapse: 'collapse' }}>
+                        <table className="w-full text-sm" style={{ borderCollapse: 'collapse' }}>
                             <thead>
                                 <tr style={{ borderBottom: '2px solid var(--border-secondary)' }}>
                                     <Th campo="id_cuestionario" label="ID" />
