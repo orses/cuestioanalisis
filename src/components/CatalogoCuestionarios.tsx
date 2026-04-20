@@ -255,10 +255,10 @@ export const CatalogoCuestionarios: React.FC<Props> = ({
                                             <td className="p-2 whitespace-nowrap">
                                                 <span className="inline-block w-24 text-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider" style={
                                                     c.estado === 'actualizado'
-                                                        ? { backgroundColor: 'rgba(34,197,94,0.18)', color: '#15803d' }
+                                                        ? { backgroundColor: 'var(--badge-ok-bg)', color: 'var(--badge-ok-fg)' }
                                                         : c.estado === 'revisado'
-                                                            ? { backgroundColor: 'rgba(59,130,246,0.18)', color: '#1d4ed8' }
-                                                            : { backgroundColor: 'rgba(234,179,8,0.22)', color: '#854d0e' }
+                                                            ? { backgroundColor: 'var(--badge-info-bg)', color: 'var(--badge-info-fg)' }
+                                                            : { backgroundColor: 'var(--badge-warn-bg)', color: 'var(--badge-warn-fg)' }
                                                 }>
                                                     {c.estado}
                                                 </span>
