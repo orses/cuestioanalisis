@@ -253,7 +253,7 @@ export const CatalogoCuestionarios: React.FC<Props> = ({
                                             <td className="p-2 text-body whitespace-nowrap">{c.version}</td>
                                             <td className="p-2 text-body whitespace-nowrap">{c.tipo}</td>
                                             <td className="p-2 whitespace-nowrap">
-                                                <span className="inline-block w-24 text-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider" style={
+                                                <span className="inline-block w-24 text-center px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider" style={
                                                     c.estado === 'actualizado'
                                                         ? { backgroundColor: 'var(--badge-ok-bg)', color: 'var(--badge-ok-fg)' }
                                                         : c.estado === 'revisado'
