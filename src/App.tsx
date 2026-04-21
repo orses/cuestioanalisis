@@ -406,6 +406,14 @@ function App() {
                 filtros.setEjercicios([tipo]);
                 setVistaActual('ejercicios');
               }}
+              onFiltrarYVerTabla={(f) => {
+                if (f.materias) filtros.setMaterias(f.materias);
+                if (f.bloques) filtros.setBloques(f.bloques);
+                if (f.temas) filtros.setTemas(f.temas);
+                if (f.aplicaciones) filtros.setAplicaciones(f.aplicaciones);
+                if (f.anulada) filtros.setAnulada(f.anulada);
+                setVistaActual('tabla');
+              }}
             />
           </div>
         )}

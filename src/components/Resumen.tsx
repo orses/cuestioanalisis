@@ -2,14 +2,28 @@ import React, { useMemo, useState, useEffect } from 'react';
 import type { Pregunta } from '../types';
 import { TrendingUp, TrendingDown, Minus, AlertCircle, BarChart3, PieChart, Layers, Target, Zap } from 'lucide-react';
 import { InfoTooltip } from './InfoTooltip';
+import { ListaPopover, type ListaPopoverItem } from './ListaPopover';
 import { getMateriaColor as getColorMateria } from '../utils/colores';
+
+export interface FiltroTabla {
+    materias?: string[];
+    bloques?: string[];
+    temas?: string[];
+    aplicaciones?: string[];
+    anulada?: string[];
+}
 
 interface ResumenProps {
     preguntas: Pregunta[];
     onVerEjercicio?: (organismo: string, escala: string, año: string, acceso: string, tipo: string) => void;
+    onFiltrarYVerTabla?: (filtro: FiltroTabla) => void;
 }
 
-export const Resumen: React.FC<ResumenProps> = ({ preguntas, onVerEjercicio }) => {
+type PopoverTipo = 'materias' | 'bloques' | 'temas' | 'aplicaciones';
+
+export const Resumen: React.FC<ResumenProps> = ({ preguntas, onVerEjercicio, onFiltrarYVerTabla }) => {
+    // ——— Popover activo para KPIs listables ———
+    const [popoverActivo, setPopoverActivo] = useState<PopoverTipo | null>(null);
     // ——— Sección activa del sidebar ———
     const [seccionActivaRes, setSeccionActivaRes] = useState<string>('sec-kpis');
 
@@ -277,6 +291,97 @@ export const Resumen: React.FC<ResumenProps> = ({ preguntas, onVerEjercicio }) =
         .filter(t => t.tendencia === 'up')
         .slice(0, 5); // Mostrar top 5 subidas globales
 
+    // ——— Listas completas para popovers (ordenadas por frecuencia) ———
+    const listaMateriasCompleta = useMemo(() => {
+        const c: Record<string, number> = {};
+        preguntas.forEach(p => { const m = p.materia.toString(); c[m] = (c[m] || 0) + 1; });
+        return Object.entries(c).sort((a, b) => b[1] - a[1]).map(([label, count]) => ({ label, count }));
+    }, [preguntas]);
+
+    const listaBloquesCompleta = useMemo(() => {
+        const c: Record<string, number> = {};
+        preguntas.forEach(p => { const b = p.bloque; if (b && b.trim() !== '') c[b] = (c[b] || 0) + 1; });
+        return Object.entries(c).sort((a, b) => b[1] - a[1]).map(([label, count]) => ({ label, count }));
+    }, [preguntas]);
+
+    const listaTemasCompleta = useMemo(() => {
+        const c: Record<string, number> = {};
+        preguntas.forEach(p => { const t = p.tema; if (t && t.trim() !== '') c[t] = (c[t] || 0) + 1; });
+        return Object.entries(c).sort((a, b) => b[1] - a[1]).map(([label, count]) => ({ label, count }));
+    }, [preguntas]);
+
+    const listaAplicacionesCompleta = useMemo(() => {
+        const c: Record<string, number> = {};
+        preguntas.forEach(p => {
+            const a = p.aplicacion ? p.aplicacion.replace(/\s*\b\d+.*$/i, '').trim() : '';
+            if (a) c[a] = (c[a] || 0) + 1;
+        });
+        return Object.entries(c).sort((a, b) => b[1] - a[1]).map(([label, count]) => ({ label, count }));
+    }, [preguntas]);
+
+    const scrollASeccion = (id: string) => {
+        document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
+    const construirItemsPopover = (tipo: PopoverTipo): ListaPopoverItem[] => {
+        const fuente = tipo === 'materias' ? listaMateriasCompleta
+            : tipo === 'bloques' ? listaBloquesCompleta
+                : tipo === 'temas' ? listaTemasCompleta
+                    : listaAplicacionesCompleta;
+        return fuente.map(({ label, count }) => ({
+            label,
+            count,
+            onClick: onFiltrarYVerTabla ? () => {
+                const filtro: FiltroTabla = {};
+                if (tipo === 'materias') filtro.materias = [label];
+                else if (tipo === 'bloques') filtro.bloques = [label];
+                else if (tipo === 'temas') filtro.temas = [label];
+                else filtro.aplicaciones = [label];
+                onFiltrarYVerTabla(filtro);
+                setPopoverActivo(null);
+            } : undefined,
+        }));
+    };
+
+    const tituloPopover = (tipo: PopoverTipo) => ({
+        materias: 'Materias', bloques: 'Bloques', temas: 'Temas', aplicaciones: 'Aplicaciones',
+    }[tipo]);
+
+    // ——— Handlers de KPIs ———
+    const handleKpiClick = (etiqueta: string) => {
+        if (etiqueta === 'Ejercicios') {
+            scrollASeccion('sec-ejercicios');
+        } else if (etiqueta === 'Anuladas' && onFiltrarYVerTabla) {
+            onFiltrarYVerTabla({ anulada: ['Sí'] });
+        } else if (etiqueta === 'Materias') {
+            setPopoverActivo('materias');
+        } else if (etiqueta === 'Bloques') {
+            setPopoverActivo('bloques');
+        } else if (etiqueta === 'Temas') {
+            setPopoverActivo('temas');
+        } else if (etiqueta === 'Aplicaciones') {
+            setPopoverActivo('aplicaciones');
+        }
+    };
+
+    const kpiEsClicable = (etiqueta: string) => {
+        if (etiqueta === 'Preguntas') return false;
+        if (etiqueta === 'Ejercicios') return true;
+        if (etiqueta === 'Anuladas') return !!onFiltrarYVerTabla && totalAnuladas > 0;
+        return !!onFiltrarYVerTabla; // Materias, Bloques, Temas, Aplicaciones
+    };
+
+    // ——— Handler de Elementos al alza ———
+    const handleElementoAlzaClick = (tipo: string, nombre: string) => {
+        if (!onFiltrarYVerTabla) return;
+        const filtro: FiltroTabla = {};
+        if (tipo === 'Materia') filtro.materias = [nombre];
+        else if (tipo === 'Bloque') filtro.bloques = [nombre];
+        else if (tipo === 'Tema') filtro.temas = [nombre];
+        else if (tipo === 'Programa') filtro.aplicaciones = [nombre];
+        onFiltrarYVerTabla(filtro);
+    };
+
     return (
         <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: '20px', alignItems: 'start' }}>
             {/* Sidebar de navegación dentro de Resumen */}
@@ -329,20 +434,35 @@ export const Resumen: React.FC<ResumenProps> = ({ preguntas, onVerEjercicio }) =
                         { valor: temasUnicos, etiqueta: 'Temas', icono: <Zap className="w-5 h-5" />, color: '#8b5cf6' },
                         { valor: aplicacionesUnicas, etiqueta: 'Aplicaciones', icono: <Target className="w-5 h-5" />, color: '#ec4899', titulo: 'Sin tener en cuenta la versión' },
                         { valor: totalAnuladas, etiqueta: 'Anuladas', icono: <AlertCircle className="w-5 h-5" />, color: '#ef4444' },
-                    ].map((kpi, i) => (
-                        <div key={i} className="bg-card rounded-xl border overflow-hidden transition-shadow hover:shadow-md" style={{ borderColor: 'var(--border-secondary)' }} title={kpi.titulo || ''}>
-                            <div style={{ height: '3px', background: kpi.color }} />
-                            <div className="px-4 py-3 flex items-center gap-3">
-                                <div className="flex-shrink-0 rounded-lg p-2" style={{ backgroundColor: `${kpi.color} 15`, color: kpi.color }}>
-                                    {kpi.icono}
+                    ].map((kpi, i) => {
+                        const clicable = kpiEsClicable(kpi.etiqueta);
+                        const tituloAccion = kpi.etiqueta === 'Ejercicios' ? 'Ir a la tabla de ejercicios'
+                            : kpi.etiqueta === 'Anuladas' ? 'Ver anuladas en tabla'
+                                : ['Materias', 'Bloques', 'Temas', 'Aplicaciones'].includes(kpi.etiqueta) ? `Ver lista de ${kpi.etiqueta.toLowerCase()}`
+                                    : '';
+                        const Wrapper: React.ElementType = clicable ? 'button' : 'div';
+                        return (
+                            <Wrapper
+                                key={i}
+                                onClick={clicable ? () => handleKpiClick(kpi.etiqueta) : undefined}
+                                className={`bg-card rounded-xl border overflow-hidden transition-shadow hover:shadow-md text-left w-full ${clicable ? 'cursor-pointer hover:-translate-y-0.5 transition-transform' : ''}`}
+                                style={{ borderColor: 'var(--border-secondary)' }}
+                                title={tituloAccion || kpi.titulo || ''}
+                                aria-label={clicable ? tituloAccion : undefined}
+                            >
+                                <div style={{ height: '3px', background: kpi.color }} />
+                                <div className="px-4 py-3 flex items-center gap-3">
+                                    <div className="flex-shrink-0 rounded-lg p-2" style={{ backgroundColor: `${kpi.color} 15`, color: kpi.color }}>
+                                        {kpi.icono}
+                                    </div>
+                                    <div>
+                                        <p className="text-2xl font-extrabold text-heading leading-none">{kpi.valor}</p>
+                                        <p className="text-xs text-muted mt-0.5">{kpi.etiqueta}</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <p className="text-2xl font-extrabold text-heading leading-none">{kpi.valor}</p>
-                                    <p className="text-xs text-muted mt-0.5">{kpi.etiqueta}</p>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
+                            </Wrapper>
+                        );
+                    })}
                 </div>
 
                 {/* ════ Tabla de ejercicios ════ */}
@@ -508,17 +628,26 @@ export const Resumen: React.FC<ResumenProps> = ({ preguntas, onVerEjercicio }) =
                         </div>
                         <p className="text-sm opacity-90 mb-3">Estas clasificaciones han incrementado su frecuencia significativamente globalmente</p>
                         <div className="space-y-2">
-                            {itemsEnAumento.map(t => (
-                                <div key={`${t.tipo} -${t.nombre} `} className="flex items-center justify-between bg-white/10 rounded-md px-4 py-2">
-                                    <div className="flex items-center gap-2">
-                                        <span className="category-chip" style={{ backgroundColor: t.tipo === 'Materia' ? getColorMateria(t.nombre) : '#475569' }}>
-                                            {t.tipo}
-                                        </span>
-                                        <span className="text-sm font-medium" style={{ color: "white" }}>{t.nombre.charAt(0).toUpperCase() + t.nombre.slice(1)}</span>
-                                    </div>
-                                    <span className="font-bold">+{t.cambio}% vs. media ant.</span>
-                                </div>
-                            ))}
+                            {itemsEnAumento.map(t => {
+                                const clicable = !!onFiltrarYVerTabla;
+                                const Wrapper: React.ElementType = clicable ? 'button' : 'div';
+                                return (
+                                    <Wrapper
+                                        key={`${t.tipo} -${t.nombre} `}
+                                        onClick={clicable ? () => handleElementoAlzaClick(t.tipo, t.nombre) : undefined}
+                                        className={`w-full flex items-center justify-between bg-white/10 rounded-md px-4 py-2 text-left ${clicable ? 'cursor-pointer hover:bg-white/20 transition-colors' : ''}`}
+                                        title={clicable ? `Filtrar por ${t.tipo.toLowerCase()} «${t.nombre}» en la tabla` : undefined}
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <span className="category-chip" style={{ backgroundColor: t.tipo === 'Materia' ? getColorMateria(t.nombre) : '#475569' }}>
+                                                {t.tipo}
+                                            </span>
+                                            <span className="text-sm font-medium" style={{ color: "white" }}>{t.nombre.charAt(0).toUpperCase() + t.nombre.slice(1)}</span>
+                                        </div>
+                                        <span className="font-bold">+{t.cambio}% vs. media ant.</span>
+                                    </Wrapper>
+                                );
+                            })}
                         </div>
                     </div>
                 )}
@@ -606,6 +735,15 @@ export const Resumen: React.FC<ResumenProps> = ({ preguntas, onVerEjercicio }) =
                     </div>
                 )}
             </div>
+
+            {popoverActivo && (
+                <ListaPopover
+                    titulo={tituloPopover(popoverActivo)}
+                    items={construirItemsPopover(popoverActivo)}
+                    total={construirItemsPopover(popoverActivo).length}
+                    onCerrar={() => setPopoverActivo(null)}
+                />
+            )}
         </div>
     );
 };
