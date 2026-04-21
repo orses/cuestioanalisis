@@ -22,7 +22,7 @@ export const InfoTooltip: React.FC<InfoTooltipProps> = ({ texto, size = 14 }) =>
             role="button"
             aria-label="Información"
         >
-            <Info style={{ width: size, height: size, color: 'var(--text-tertiary)', opacity: 0.6 }} />
+            <Info style={{ width: size, height: size, color: 'currentColor', opacity: 0.75 }} />
             {visible && (
                 <span
                     className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 rounded-lg text-xs font-normal leading-relaxed shadow-lg pointer-events-none"
