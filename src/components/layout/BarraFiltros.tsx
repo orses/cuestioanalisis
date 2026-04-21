@@ -87,6 +87,31 @@ export const BarraFiltros: React.FC<BarraFiltrosProps> = ({
         state.escalas, state.accesos, state.ejercicios, state.cuestionarios,
     ].filter(arr => arr.length > 0).length + (state.busqueda ? 1 : 0);
 
+    // ——— Formatters para mostrar valores legibles en los chips ———
+    const fmtEscala = (v: string) => ({ AUX: 'Auxiliar administrativo', ADV: 'Administrativo', PSX: 'Personal de Servicios Generales' } as Record<string, string>)[v] || v;
+    const fmtAcceso = (v: string) => ({ LI: 'Libre', PI: 'Prom. interna', PC: 'Prom. cruzada' } as Record<string, string>)[v] || v;
+    const fmtEjercicio = (v: string) => ({ PRI: 'Primero', SEG: 'Segundo', UNI: 'Único' } as Record<string, string>)[v] || v;
+
+    // ——— Chips de filtros activos ———
+    type ChipActivo = { key: string; label: string; valor: string; onQuitar: () => void };
+    const quitarDe = (arr: string[], valor: string, setter: (v: string[]) => void) => () => setter(arr.filter(x => x !== valor));
+
+    const chipsActivos: ChipActivo[] = [
+        ...state.organismos.map(v => ({ key: `organismo-${v}`, label: 'Organismo', valor: v, onQuitar: quitarDe(state.organismos, v, setOrganismos) })),
+        ...state.escalas.map(v => ({ key: `escala-${v}`, label: 'Escala', valor: fmtEscala(v), onQuitar: quitarDe(state.escalas, v, setEscalas) })),
+        ...state.años.map(v => ({ key: `anyo-${v}`, label: 'Año', valor: v, onQuitar: quitarDe(state.años, v, setAños) })),
+        ...state.accesos.map(v => ({ key: `acceso-${v}`, label: 'Acceso', valor: fmtAcceso(v), onQuitar: quitarDe(state.accesos, v, setAccesos) })),
+        ...state.ejercicios.map(v => ({ key: `ejercicio-${v}`, label: 'Ejercicio', valor: fmtEjercicio(v), onQuitar: quitarDe(state.ejercicios, v, setEjercicios) })),
+        ...state.materias.map(v => ({ key: `materia-${v}`, label: 'Materia', valor: v, onQuitar: quitarDe(state.materias, v, setMaterias) })),
+        ...state.bloques.map(v => ({ key: `bloque-${v}`, label: 'Bloque', valor: v, onQuitar: quitarDe(state.bloques, v, setBloques) })),
+        ...state.temas.map(v => ({ key: `tema-${v}`, label: 'Tema', valor: v, onQuitar: quitarDe(state.temas, v, setTemas) })),
+        ...state.aplicaciones.map(v => ({ key: `aplicacion-${v}`, label: 'Aplicación', valor: v, onQuitar: quitarDe(state.aplicaciones, v, setAplicaciones) })),
+        ...state.correctas.map(v => ({ key: `correcta-${v}`, label: 'Correcta', valor: v, onQuitar: quitarDe(state.correctas, v, setCorrectas) })),
+        ...state.anulada.map(v => ({ key: `anulada-${v}`, label: 'Anulada', valor: v, onQuitar: quitarDe(state.anulada, v, setAnulada) })),
+        ...state.cuestionarios.map(v => ({ key: `cuestionario-${v}`, label: 'Cuestionario', valor: v, onQuitar: quitarDe(state.cuestionarios, v, setCuestionarios) })),
+        ...(state.busqueda ? [{ key: 'busqueda', label: 'Búsqueda', valor: state.busqueda, onQuitar: () => setBusqueda('') }] : []),
+    ];
+
     return (
         <div className="bg-card border-b" style={{ borderColor: 'var(--border-secondary)' }}>
             <div className="max-w-[1800px] mx-auto px-4 py-3">
@@ -124,6 +149,35 @@ export const BarraFiltros: React.FC<BarraFiltrosProps> = ({
                         </button>
                     )}
                 </div>
+
+                {/* ———— Chips de filtros activos (siempre visibles, incluso con el panel colapsado) ———— */}
+                {chipsActivos.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-2 mb-1" aria-label="Filtros activos">
+                        {chipsActivos.map(c => (
+                            <span
+                                key={c.key}
+                                className="inline-flex items-center gap-1 text-xs font-medium rounded-full pl-2.5 pr-1 py-0.5 border"
+                                style={{
+                                    backgroundColor: 'var(--bg-tertiary)',
+                                    borderColor: 'var(--border-secondary)',
+                                    color: 'var(--text-primary)',
+                                }}
+                            >
+                                <span className="text-muted">{c.label}:</span>
+                                <span className="font-semibold truncate" style={{ maxWidth: '200px' }} title={c.valor}>{c.valor}</span>
+                                <button
+                                    onClick={c.onQuitar}
+                                    className="ml-0.5 p-0.5 rounded-full hover:bg-muted transition-colors"
+                                    aria-label={`Quitar filtro ${c.label}: ${c.valor}`}
+                                    title={`Quitar ${c.label}: ${c.valor}`}
+                                >
+                                    <X className="w-3 h-3" />
+                                </button>
+                            </span>
+                        ))}
+                    </div>
+                )}
+
                 <div
                     id="filtros-panel"
                     className="filtros-colapsable"
