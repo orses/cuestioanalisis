@@ -49,7 +49,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
 }) => {
     return (
         <header className="bg-card border-b sticky top-0 z-40" style={{ borderColor: 'var(--border-secondary)' }}>
-            <div className="max-w-[1400px] mx-auto px-4 py-3">
+            <div className="max-w-[1800px] mx-auto px-4 py-3">
                 <div className="flex items-center justify-between">
                     <div className="flex-1 min-w-0 pr-4">
                         <h1
@@ -132,7 +132,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
 
             {/* ———— PESTAÑAS ———— */}
             <div className="bg-card border-t" style={{ borderColor: 'var(--border-secondary)' }}>
-                <div className="max-w-[1400px] mx-auto px-4">
+                <div className="max-w-[1800px] mx-auto px-4">
                     <nav className="flex space-x-1 py-1 overflow-x-auto" role="tablist" aria-label="Secciones principales">
                         {TABS.map(({ id, label, icon }) => (
                             <button

@@ -89,7 +89,7 @@ export const BarraFiltros: React.FC<BarraFiltrosProps> = ({
 
     return (
         <div className="bg-card border-b" style={{ borderColor: 'var(--border-secondary)' }}>
-            <div className="max-w-[1400px] mx-auto px-4 py-3">
+            <div className="max-w-[1800px] mx-auto px-4 py-3">
                 <div className="flex items-center gap-2 mb-1">
                     <button
                         onClick={handleToggleColapso}

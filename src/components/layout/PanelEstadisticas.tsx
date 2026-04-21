@@ -168,22 +168,22 @@ export const PanelEstadisticas: React.FC<PanelEstadisticasProps> = ({ preguntas,
 
     return (
         <div id="panel-estadisticas" role="tabpanel" className="animate-fade-slide"
-            style={{ display: 'grid', gridTemplateColumns: '180px minmax(0, 1fr)', gap: '16px', alignItems: 'start' }}>
+            style={{ display: 'grid', gridTemplateColumns: '220px minmax(0, 1fr)', gap: '20px', alignItems: 'start' }}>
 
             {/* ═══ Sidebar de navegación agrupado ═══ */}
             <nav style={{
                 position: 'sticky', top: '140px',
                 display: 'flex', flexDirection: 'column', gap: '0px',
-                padding: '10px', borderRadius: '10px',
+                padding: '12px', borderRadius: '10px',
                 backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-secondary)',
-                fontSize: '11px', maxHeight: 'calc(100vh - 160px)', overflowY: 'auto',
+                fontSize: '13px', maxHeight: 'calc(100vh - 160px)', overflowY: 'auto',
             }}>
                 {GRUPOS.map((grupo, gi) => (
                     <div key={gi}>
                         {/* Encabezado de grupo */}
                         <div style={{
-                            fontSize: '9px', fontWeight: 800, textTransform: 'uppercase',
-                            letterSpacing: '0.05em',
+                            fontSize: '10px', fontWeight: 800, textTransform: 'uppercase',
+                            letterSpacing: '0.06em',
                             color: 'var(--text-tertiary)',
                             padding: '8px 8px 4px 8px',
                             marginTop: gi > 0 ? '6px' : '0',

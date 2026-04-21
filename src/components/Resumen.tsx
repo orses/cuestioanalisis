@@ -278,14 +278,14 @@ export const Resumen: React.FC<ResumenProps> = ({ preguntas, onVerEjercicio }) =
         .slice(0, 5); // Mostrar top 5 subidas globales
 
     return (
-        <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr', gap: '16px', alignItems: 'start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: '20px', alignItems: 'start' }}>
             {/* Sidebar de navegación dentro de Resumen */}
             <nav style={{
                 position: 'sticky', top: '140px',
                 display: 'flex', flexDirection: 'column', gap: '2px',
-                padding: '10px', borderRadius: '10px',
+                padding: '12px', borderRadius: '10px',
                 backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-secondary)',
-                fontSize: '11px',
+                fontSize: '13px',
             }}>
                 {[
                     { id: 'sec-kpis', label: 'KPIs', icon: <Target className="w-3.5 h-3.5" /> },
