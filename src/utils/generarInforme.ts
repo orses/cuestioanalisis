@@ -14,26 +14,72 @@ export function generarInformeMarkdown(preguntas: Pregunta[], nombreDataset: str
     line(`# Informe de Análisis — ${nombreDataset}`);
     line(`\n*Generado el ${ahora}*\n`);
 
+    // ——— Helpers reutilizables ———
+    const ejercicioDe = (p: Pregunta) => p.id.split('_').slice(0, -1).join('_') || '(sin ejercicio)';
+    const fmtEscala = (v: string) => ({ AUX: 'Auxiliar', ADV: 'Administrativo', PSX: 'Servicios Grales.' } as Record<string, string>)[v] || v || '—';
+    const fmtAcceso = (v: string) => ({ LI: 'Libre', PI: 'Prom. int.', PC: 'Prom. cruz.' } as Record<string, string>)[v] || v || '—';
+    const fmtTipo = (v: string) => ({ PRI: 'Primero', SEG: 'Segundo', UNI: 'Único' } as Record<string, string>)[v] || v || '—';
+    const limpiarAplicacion = (a?: string) => a ? a.replace(/\s*\b\d+.*$/i, '').trim() : '';
+    const total = preguntas.length;
+    const pct = (n: number) => total > 0 ? (n / total * 100).toFixed(1) : '0.0';
+
     // ——————— RESUMEN GENERAL ———————
     line(`## Resumen general\n`);
     const totalAnuladas = preguntas.filter(p => p.anulada).length;
-    const ejercicios = new Set(preguntas.map(p => p.id.replace(/_\d+$/, '')));
+    const ejercicios = new Set(preguntas.map(ejercicioDe));
     const materias = new Set(preguntas.map(p => p.materia.toString()));
     const bloques = new Set(preguntas.map(p => p.bloque).filter(Boolean));
     const temas = new Set(preguntas.map(p => p.tema).filter(Boolean));
+    const aplicaciones = new Set(preguntas.map(p => limpiarAplicacion(p.aplicacion)).filter(Boolean));
 
     line(`| Métrica | Valor |`);
     line(`|---------|-------|`);
-    line(`| Preguntas totales | ${preguntas.length} |`);
+    line(`| Preguntas totales | ${total} |`);
     line(`| Ejercicios / convocatorias | ${ejercicios.size} |`);
     line(`| Materias | ${materias.size} |`);
     line(`| Bloques | ${bloques.size} |`);
     line(`| Temas | ${temas.size} |`);
-    line(`| Anuladas | ${totalAnuladas} (${(totalAnuladas / preguntas.length * 100).toFixed(1)}%) |`);
+    line(`| Aplicaciones | ${aplicaciones.size} |`);
+    line(`| Anuladas | ${totalAnuladas} (${pct(totalAnuladas)}%) |`);
+    line('');
+
+    // ——————— DISTRIBUCIÓN POR EJERCICIO ———————
+    line(`## Ejercicios (${ejercicios.size})\n`);
+    const ejConteo = new Map<string, { organismo: string; escala: string; año: number; acceso: string; tipo: string; count: number; anuladas: number }>();
+    preguntas.forEach(p => {
+        const ej = ejercicioDe(p);
+        if (!ejConteo.has(ej)) {
+            ejConteo.set(ej, {
+                organismo: p.metadatos?.organismo || '—',
+                escala: p.metadatos?.escala || '',
+                año: p.metadatos?.año || 0,
+                acceso: p.metadatos?.acceso || '',
+                tipo: p.metadatos?.tipo || '',
+                count: 0,
+                anuladas: 0,
+            });
+        }
+        const d = ejConteo.get(ej)!;
+        d.count++;
+        if (p.anulada) d.anuladas++;
+    });
+    const ejOrdenados = Array.from(ejConteo.values()).sort((a, b) => {
+        const o = a.organismo.localeCompare(b.organismo);
+        if (o !== 0) return o;
+        const e = a.escala.localeCompare(b.escala);
+        if (e !== 0) return e;
+        if (a.año !== b.año) return a.año - b.año;
+        return a.acceso.localeCompare(b.acceso);
+    });
+    line(`| Organismo | Escala | Año | Acceso | Ejercicio | Preguntas | % | Anuladas |`);
+    line(`|-----------|--------|-----|--------|-----------|-----------|---|----------|`);
+    ejOrdenados.forEach(d => {
+        line(`| ${d.organismo || '—'} | ${fmtEscala(d.escala)} | ${d.año > 0 ? d.año : '—'} | ${fmtAcceso(d.acceso)} | ${fmtTipo(d.tipo)} | ${d.count} | ${pct(d.count)}% | ${d.anuladas || '—'} |`);
+    });
     line('');
 
     // ——————— DISTRIBUCIÓN POR MATERIA ———————
-    line(`## Distribución por materia\n`);
+    line(`## Distribución por materia (${materias.size})\n`);
     const matConteo: Record<string, number> = {};
     for (const p of preguntas) {
         const m = p.materia.toString();
@@ -44,13 +90,70 @@ export function generarInformeMarkdown(preguntas: Pregunta[], nombreDataset: str
     Object.entries(matConteo)
         .sort(([, a], [, b]) => b - a)
         .forEach(([m, c]) => {
-            line(`| ${m} | ${c} | ${(c / preguntas.length * 100).toFixed(1)}% |`);
+            line(`| ${m} | ${c} | ${pct(c)}% |`);
         });
     line('');
 
+    // ——————— DISTRIBUCIÓN POR BLOQUE ———————
+    if (bloques.size > 0) {
+        line(`## Distribución por bloque (${bloques.size})\n`);
+        const blConteo: Record<string, number> = {};
+        for (const p of preguntas) {
+            const b = p.bloque;
+            if (b && b.trim() !== '') blConteo[b] = (blConteo[b] || 0) + 1;
+        }
+        line(`| Bloque | Preguntas | % |`);
+        line(`|--------|-----------|---|`);
+        Object.entries(blConteo)
+            .sort(([, a], [, b]) => b - a)
+            .forEach(([b, c]) => {
+                line(`| ${b} | ${c} | ${pct(c)}% |`);
+            });
+        line('');
+    }
+
+    // ——————— DISTRIBUCIÓN POR TEMA ———————
+    if (temas.size > 0) {
+        line(`## Distribución por tema (${temas.size})\n`);
+        const tmConteo: Record<string, number> = {};
+        for (const p of preguntas) {
+            const t = p.tema;
+            if (t && t.trim() !== '') tmConteo[t] = (tmConteo[t] || 0) + 1;
+        }
+        line(`| Tema | Preguntas | % |`);
+        line(`|------|-----------|---|`);
+        Object.entries(tmConteo)
+            .sort(([, a], [, b]) => b - a)
+            .forEach(([t, c]) => {
+                line(`| ${t} | ${c} | ${pct(c)}% |`);
+            });
+        line('');
+    }
+
+    // ——————— DISTRIBUCIÓN POR APLICACIÓN ———————
+    if (aplicaciones.size > 0) {
+        line(`## Distribución por aplicación (${aplicaciones.size})\n`);
+        const apConteo: Record<string, number> = {};
+        for (const p of preguntas) {
+            const a = limpiarAplicacion(p.aplicacion);
+            if (a) apConteo[a] = (apConteo[a] || 0) + 1;
+        }
+        line(`| Aplicación | Preguntas | % |`);
+        line(`|------------|-----------|---|`);
+        Object.entries(apConteo)
+            .sort(([, a], [, b]) => b - a)
+            .forEach(([a, c]) => {
+                line(`| ${a} | ${c} | ${pct(c)}% |`);
+            });
+        line('');
+    }
+
     // ——————— RADIOGRAFÍA DE ANULADAS ———————
     if (totalAnuladas > 0) {
-        line(`## Radiografía de Anulaciones\n`);
+        line(`## Radiografía de anulaciones (${totalAnuladas})\n`);
+        line(`Tasa global: **${pct(totalAnuladas)}%** · ${totalAnuladas} de ${total} preguntas.\n`);
+
+        // Por organismo
         const orgAnuladas = new Map<string, { total: number; anuladas: number }>();
         preguntas.forEach(p => {
             const org = p.metadatos?.organismo || 'Desconocido';
@@ -58,18 +161,73 @@ export function generarInformeMarkdown(preguntas: Pregunta[], nombreDataset: str
             orgAnuladas.get(org)!.total++;
             if (p.anulada) orgAnuladas.get(org)!.anuladas++;
         });
-
-        const topOrgAnuladas = Array.from(orgAnuladas.entries())
+        const orgConAnuladas = Array.from(orgAnuladas.entries())
             .filter(e => e[1].anuladas > 0)
-            .sort((a, b) => b[1].anuladas - a[1].anuladas)
-            .slice(0, 10);
+            .sort((a, b) => b[1].anuladas - a[1].anuladas);
+        if (orgConAnuladas.length > 0) {
+            line(`### Por organismo\n`);
+            line(`| Organismo | Total muestra | Anuladas | Tasa impugnación |`);
+            line(`|-----------|---------------|----------|------------------|`);
+            orgConAnuladas.forEach(([org, s]) => {
+                line(`| ${org} | ${s.total} | ${s.anuladas} | ${((s.anuladas / s.total) * 100).toFixed(1)}% |`);
+            });
+            line('');
+        }
 
-        line(`| Organismo | Total Muestra | Anuladas | Tasa Impugnación |`);
-        line(`|-----------|---------------|----------|------------------|`);
-        topOrgAnuladas.forEach(([org, stats]) => {
-            line(`| ${org} | ${stats.total} | ${stats.anuladas} | ${((stats.anuladas / stats.total) * 100).toFixed(1)}% |`);
+        // Por año
+        const añoAnuladas = new Map<number, { total: number; anuladas: number }>();
+        preguntas.forEach(p => {
+            const año = p.metadatos?.año || 0;
+            if (!año) return;
+            if (!añoAnuladas.has(año)) añoAnuladas.set(año, { total: 0, anuladas: 0 });
+            añoAnuladas.get(año)!.total++;
+            if (p.anulada) añoAnuladas.get(año)!.anuladas++;
         });
-        line('');
+        const añosConAnuladas = Array.from(añoAnuladas.entries())
+            .filter(e => e[1].anuladas > 0)
+            .sort((a, b) => a[0] - b[0]);
+        if (añosConAnuladas.length > 0) {
+            line(`### Por año\n`);
+            line(`| Año | Total muestra | Anuladas | Tasa |`);
+            line(`|-----|---------------|----------|------|`);
+            añosConAnuladas.forEach(([año, s]) => {
+                line(`| ${año} | ${s.total} | ${s.anuladas} | ${((s.anuladas / s.total) * 100).toFixed(1)}% |`);
+            });
+            line('');
+        }
+
+        // Por materia
+        const matAnuladas = new Map<string, { total: number; anuladas: number }>();
+        preguntas.forEach(p => {
+            const m = p.materia.toString();
+            if (!matAnuladas.has(m)) matAnuladas.set(m, { total: 0, anuladas: 0 });
+            matAnuladas.get(m)!.total++;
+            if (p.anulada) matAnuladas.get(m)!.anuladas++;
+        });
+        const matConAnuladas = Array.from(matAnuladas.entries())
+            .filter(e => e[1].anuladas > 0)
+            .sort((a, b) => b[1].anuladas - a[1].anuladas);
+        if (matConAnuladas.length > 0) {
+            line(`### Por materia\n`);
+            line(`| Materia | Total muestra | Anuladas | Tasa |`);
+            line(`|---------|---------------|----------|------|`);
+            matConAnuladas.forEach(([m, s]) => {
+                line(`| ${m} | ${s.total} | ${s.anuladas} | ${((s.anuladas / s.total) * 100).toFixed(1)}% |`);
+            });
+            line('');
+        }
+
+        // Listado de preguntas anuladas
+        const listaAnuladas = preguntas.filter(p => p.anulada);
+        if (listaAnuladas.length > 0) {
+            line(`### Preguntas anuladas\n`);
+            line(`| ID | Ejercicio | Materia | Tema |`);
+            line(`|----|-----------|---------|------|`);
+            listaAnuladas.forEach(p => {
+                line(`| ${p.id} | ${ejercicioDe(p)} | ${p.materia} | ${p.tema || '—'} |`);
+            });
+            line('');
+        }
     }
 
     // ——————— DISTRACTORES FRECUENTES ———————
