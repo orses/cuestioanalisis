@@ -357,7 +357,11 @@ function App() {
         dark={dark}
         loading={loading}
         onExportarFiltrado={exportarFiltrado}
-        onDescargarInforme={() => descargarInforme(filtros.preguntasFiltradas, nombresArchivos.join(', '))}
+        onDescargarInforme={() => descargarInforme(
+          filtros.preguntasFiltradas,
+          nombresArchivos.join(', '),
+          { filtrado: filtros.hayFiltrosActivos, totalSinFiltrar: preguntasEditadas.length },
+        )}
         onDescargarCSV={descargarCSV}
         onToggleDark={() => setDark(!dark)}
         onReemplazar={() => { setDataset(null); setEdiciones({}); setNombresArchivos([]); }}

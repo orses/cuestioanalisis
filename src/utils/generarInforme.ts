@@ -6,13 +6,24 @@ import { generarInsights } from './estadisticas';
 /**
  * Genera un informe analítico completo del dataset en formato Markdown.
  */
-export function generarInformeMarkdown(preguntas: Pregunta[], nombreDataset: string): string {
+export function generarInformeMarkdown(
+    preguntas: Pregunta[],
+    nombreDataset: string,
+    opts?: { filtrado?: boolean; totalSinFiltrar?: number },
+): string {
     const ahora = new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
     const lines: string[] = [];
     const line = (s: string) => lines.push(s);
 
     line(`# Informe de Análisis — ${nombreDataset}`);
     line(`\n*Generado el ${ahora}*\n`);
+
+    if (opts?.filtrado) {
+        const ref = opts.totalSinFiltrar !== undefined
+            ? `${preguntas.length} de ${opts.totalSinFiltrar} preguntas`
+            : `${preguntas.length} preguntas`;
+        line(`> ⚠ **Informe sobre subconjunto filtrado** (${ref}). Toda la estadística de este documento se calcula solo sobre las preguntas que cumplen los filtros activos.\n`);
+    }
 
     // ——— Helpers reutilizables ———
     const ejercicioDe = (p: Pregunta) => p.id.split('_').slice(0, -1).join('_') || '(sin ejercicio)';
@@ -349,13 +360,19 @@ export function generarInformeMarkdown(preguntas: Pregunta[], nombreDataset: str
 /**
  * Descarga el informe como archivo .md
  */
-export function descargarInforme(preguntas: Pregunta[], nombreDataset: string): void {
-    const md = generarInformeMarkdown(preguntas, nombreDataset);
+export function descargarInforme(
+    preguntas: Pregunta[],
+    nombreDataset: string,
+    opts?: { filtrado?: boolean; totalSinFiltrar?: number },
+): void {
+    const md = generarInformeMarkdown(preguntas, nombreDataset, opts);
     const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
+    const base = `informe_${nombreDataset.replace(/[^a-zA-Z0-9]/g, '_')}`;
+    const sufijo = opts?.filtrado ? `_filtrado_${preguntas.length}preg` : '';
     a.href = url;
-    a.download = `informe_${nombreDataset.replace(/[^a-zA-Z0-9]/g, '_')}.md`;
+    a.download = `${base}${sufijo}.md`;
     a.click();
     URL.revokeObjectURL(url);
 }
