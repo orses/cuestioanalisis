@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Upload, Sun, Moon, FileSpreadsheet, ChevronUp } from 'lucide-react';
-import { procesarCSV, parsearCatalogo, csvTieneIdCuestionario } from './utils/parser';
+import { procesarCSV, parsearCatalogo, csvTieneIdCuestionario, normalizarCatalogo } from './utils/parser';
 import type { DatasetAnalisis, Pregunta, CuestionarioMeta } from './types';
 import { useFiltros } from './hooks/useFiltros';
 import { useFiltrosCatalogo } from './hooks/useFiltrosCatalogo';
@@ -20,6 +20,7 @@ import { Ayuda } from './components/Ayuda';
 import { CatalogoCuestionarios } from './components/CatalogoCuestionarios';
 import { guardarDataset, recuperarDataset, guardarCatalogo, recuperarCatalogo } from './utils/storage';
 import { descargarInforme } from './utils/generarInforme';
+import { obtenerClaveEjercicioCuestionario, obtenerEjercicioBase } from './utils/ejercicios';
 import Papa from 'papaparse';
 
 // Claves editables de Pregunta — protege contra prototype pollution en guardarEdicion
@@ -183,7 +184,7 @@ function App() {
     setArchivosEnEspera([]);
   };
 
-  // ——— Carga de catálogo CSV ———
+  // ——— Carga de catálogo ———
   const handleCargarCatalogo = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -205,7 +206,13 @@ function App() {
       }
     }).catch(() => { });
     recuperarCatalogo().then(cat => {
-      if (cat) setCatalogo(cat);
+      if (cat) {
+        const catalogoNormalizado = normalizarCatalogo(cat);
+        setCatalogo(catalogoNormalizado);
+        if (catalogoNormalizado.length !== cat.length) {
+          guardarCatalogo(catalogoNormalizado).catch(() => { });
+        }
+      }
     }).catch(() => { });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -230,7 +237,7 @@ function App() {
   const descargarCSV = () => {
     const rows = preguntasEditadas.map(p => ({
       id_cuestionario: p.id_cuestionario,
-      ejercicio: p.id.split('_').slice(0, -1).join('_'),
+      ejercicio: obtenerEjercicioBase(p),
       año: p.metadatos.año,
       numero: p.numero_original,
       materia: p.materia,
@@ -261,7 +268,7 @@ function App() {
     if (filtros.preguntasFiltradas.length === 0) return;
     const rows = filtros.preguntasFiltradas.map(p => ({
       id_cuestionario: p.id_cuestionario,
-      ejercicio: p.id.split('_').slice(0, -1).join('_'),
+      ejercicio: obtenerEjercicioBase(p),
       año: p.metadatos.año,
       numero: p.numero_original,
       materia: p.materia,
@@ -287,6 +294,10 @@ function App() {
   };
 
   const totalEdiciones = Object.keys(ediciones).length;
+  const totalEjerciciosCargados = useMemo(
+    () => new Set(preguntasEditadas.map(obtenerClaveEjercicioCuestionario)).size,
+    [preguntasEditadas]
+  );
 
   // ——— Callbacks de navegación desde modal ———
   const crearFiltroDesdeModal = useCallback((setter: (v: string[]) => void) => {
@@ -328,11 +339,11 @@ function App() {
                 style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)' }}
               >
                 <FileSpreadsheet className="w-4 h-4" />
-                {catalogo.length > 0 ? `Catálogo (${catalogo.length})` : 'Cargar catálogo CSV'}
-                <input type="file" accept=".csv" className="hidden" onChange={handleCargarCatalogo} />
+                {catalogo.length > 0 ? `Catálogo (${catalogo.length})` : 'Cargar catálogo'}
+                <input type="file" accept=".csv,.xlsx,.xlsm" className="hidden" onChange={handleCargarCatalogo} />
               </label>
             </div>
-            <p className="text-xs text-muted mt-4">Formato CSV con delimitador «|» · Se pueden seleccionar varios archivos de preguntas a la vez</p>
+            <p className="text-xs text-muted mt-4">Preguntas en CSV con delimitador «|» · Catálogo en Excel o CSV · Se pueden seleccionar varios archivos de preguntas a la vez</p>
           </div>
         </div>
       </div>
@@ -348,7 +359,7 @@ function App() {
       <AppHeader
         nombresArchivos={nombresArchivos}
         totalPreguntas={preguntasEditadas.length}
-        totalEjercicios={dataset.ejercicios_unicos.length}
+        totalEjercicios={totalEjerciciosCargados}
         totalCuestionarios={(dataset.cuestionarios_cargados || []).length}
         totalEdiciones={totalEdiciones}
         hayFiltrosActivos={filtros.hayFiltrosActivos}
@@ -402,7 +413,8 @@ function App() {
           <div id="panel-resumen" role="tabpanel" className="animate-fade-slide">
             <Resumen
               preguntas={filtros.preguntasFiltradas}
-              onVerEjercicio={(organismo, escala, año, acceso, tipo) => {
+              onVerEjercicio={(organismo, escala, año, acceso, tipo, cuestionario) => {
+                filtros.setCuestionarios(cuestionario ? [cuestionario] : []);
                 filtros.setOrganismos([organismo]);
                 filtros.setEscalas([escala]);
                 filtros.setAños([año]);

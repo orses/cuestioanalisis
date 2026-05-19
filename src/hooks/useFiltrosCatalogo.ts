@@ -1,6 +1,11 @@
 import { useReducer, useMemo, useCallback, useEffect } from 'react';
 import type { CuestionarioMeta } from '../types';
 
+function obtenerVersionSistemaOperativo(cuestionario: CuestionarioMeta): string {
+    const legado = (cuestionario as unknown as { sistema_operativo?: unknown }).sistema_operativo;
+    return cuestionario.version_sistema_operativo || (typeof legado === 'string' ? legado : '');
+}
+
 // ——— Estado ———
 export interface FiltrosCatalogoState {
     versiones: string[];
@@ -71,7 +76,7 @@ export function useFiltrosCatalogo(catalogo: CuestionarioMeta[]) {
     const versionesDisponibles = useMemo(() => Array.from(new Set(catalogo.map(c => c.version).filter(Boolean))).sort(), [catalogo]);
     const tiposDisponibles = useMemo(() => Array.from(new Set(catalogo.map(c => c.tipo).filter(Boolean))).sort(), [catalogo]);
     const estadosDisponibles = useMemo(() => Array.from(new Set(catalogo.map(c => c.estado).filter(Boolean))).sort(), [catalogo]);
-    const soDisponibles = useMemo(() => Array.from(new Set(catalogo.map(c => c.sistema_operativo).filter(Boolean))).sort(), [catalogo]);
+    const soDisponibles = useMemo(() => Array.from(new Set(catalogo.map(obtenerVersionSistemaOperativo).filter(Boolean))).sort(), [catalogo]);
     const ofimaticaDisponibles = useMemo(() => Array.from(new Set(catalogo.map(c => c.paquete_ofimatico).filter(Boolean))).sort(), [catalogo]);
 
     // Catálogo filtrado
@@ -80,7 +85,7 @@ export function useFiltrosCatalogo(catalogo: CuestionarioMeta[]) {
             if (state.versiones.length > 0 && !state.versiones.includes(c.version)) return false;
             if (state.tipos.length > 0 && !state.tipos.includes(c.tipo)) return false;
             if (state.estados.length > 0 && !state.estados.includes(c.estado)) return false;
-            if (state.so.length > 0 && !state.so.includes(c.sistema_operativo)) return false;
+            if (state.so.length > 0 && !state.so.includes(obtenerVersionSistemaOperativo(c))) return false;
             if (state.ofimatica.length > 0 && !state.ofimatica.includes(c.paquete_ofimatico)) return false;
             return true;
         });

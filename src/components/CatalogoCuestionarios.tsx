@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { Upload, Check, Minus, RefreshCw, ChevronDown, ChevronUp, ChevronsUpDown, Filter } from 'lucide-react';
+import { Check, ChevronDown, ChevronUp, ChevronsUpDown, Filter, RefreshCw, Upload } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CuestionarioMeta } from '../types';
 import { MultiSelect } from './MultiSelect';
 
@@ -26,6 +26,63 @@ interface Props {
     setCatOfimaticaActiva: (v: string[]) => void;
 }
 
+function obtenerVersionSistemaOperativo(cuestionario: CuestionarioMeta): string {
+    const legado = (cuestionario as unknown as { sistema_operativo?: unknown }).sistema_operativo;
+    return cuestionario.version_sistema_operativo || (typeof legado === 'string' ? legado : '');
+}
+
+type ColumnAlign = 'left' | 'right' | 'center';
+
+const CATALOG_COLUMNS: { key: keyof CuestionarioMeta; label: string; align?: ColumnAlign }[] = [
+    { key: 'id_cuestionario', label: 'ID' },
+    { key: 'familia', label: 'Familia' },
+    { key: 'cuestionario', label: 'Cuestionario' },
+    { key: 'version', label: 'Versión' },
+    { key: 'tipo', label: 'Tipo' },
+    { key: 'estado', label: 'Estado' },
+    { key: 'recopilacion', label: 'Recopilación.', align: 'center' },
+    { key: 'num_preguntas', label: 'N.º preguntas.', align: 'right' },
+    { key: 'version_sistema_operativo', label: 'Versión SO' },
+    { key: 'paquete_ofimatico', label: 'Paquete ofimático' },
+    { key: 'descripcion', label: 'Descripción' },
+    { key: 'preparacion', label: 'Preparación' },
+    { key: 'informatica', label: 'Informática', align: 'center' },
+    { key: 'seguridad', label: 'Seguridad', align: 'center' },
+    { key: 'sistema_operativo', label: 'Sistema operativo', align: 'center' },
+    { key: 'procesador_texto', label: 'Procesador de texto', align: 'center' },
+    { key: 'hoja_de_calculo', label: 'Hoja de cálculo', align: 'center' },
+    { key: 'sgbd', label: 'SGBD', align: 'center' },
+    { key: 'presentaciones', label: 'Presentación', align: 'center' },
+    { key: 'redes', label: 'Redes', align: 'center' },
+    { key: 'cliente_correo', label: 'Correo', align: 'center' },
+];
+
+const DEFAULT_COLUMN_WIDTHS: Record<string, number> = {
+    id_cuestionario: 88,
+    familia: 80,
+    cuestionario: 230,
+    version: 130,
+    tipo: 150,
+    estado: 120,
+    recopilacion: 64,
+    num_preguntas: 90,
+    version_sistema_operativo: 140,
+    paquete_ofimatico: 150,
+    descripcion: 190,
+    preparacion: 170,
+    informatica: 98,
+    seguridad: 92,
+    sistema_operativo: 130,
+    procesador_texto: 70,
+    hoja_de_calculo: 78,
+    sgbd: 72,
+    presentaciones: 86,
+    redes: 70,
+    cliente_correo: 78,
+};
+
+const CATALOG_WIDTHS_KEY = 'catalogoColumnWidths';
+
 export const CatalogoCuestionarios: React.FC<Props> = ({
     catalogo, catalogoFiltradoGlobal, cuestionariosCargados, onCargarCatalogo, onVerCuestionario,
     catVersionesDisponibles, catVersionesActivas, setCatVersionesActivas,
@@ -39,6 +96,28 @@ export const CatalogoCuestionarios: React.FC<Props> = ({
     const [overflowVisible, setOverflowVisible] = useState(true);
     const [sortKey, setSortKey] = useState<keyof CuestionarioMeta | null>(null);
     const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+    const [colWidths, setColWidths] = useState<Record<string, number>>(() => {
+        if (typeof window === 'undefined') return DEFAULT_COLUMN_WIDTHS;
+        try {
+            const saved = localStorage.getItem(CATALOG_WIDTHS_KEY);
+            return saved ? { ...DEFAULT_COLUMN_WIDTHS, ...JSON.parse(saved) } : DEFAULT_COLUMN_WIDTHS;
+        } catch {
+            return DEFAULT_COLUMN_WIDTHS;
+        }
+    });
+    const tableRef = useRef<HTMLTableElement>(null);
+    const resizingCol = useRef<string | null>(null);
+    const startX = useRef(0);
+    const startWidth = useRef(0);
+
+    useEffect(() => {
+        localStorage.setItem(CATALOG_WIDTHS_KEY, JSON.stringify(colWidths));
+    }, [colWidths]);
+
+    const tableWidth = useMemo(
+        () => CATALOG_COLUMNS.reduce((total, col) => total + (colWidths[col.key] ?? DEFAULT_COLUMN_WIDTHS[col.key] ?? 90), 0),
+        [colWidths]
+    );
 
     const handleSort = (key: keyof CuestionarioMeta) => {
         if (sortKey === key) {
@@ -62,9 +141,11 @@ export const CatalogoCuestionarios: React.FC<Props> = ({
         const filtrado = busqueda
             ? catalogoFiltradoGlobal.filter(c =>
                 c.id_cuestionario.toLowerCase().includes(busqueda.toLowerCase()) ||
-                c.cuestionario.toLowerCase().includes(busqueda.toLowerCase()) ||
-                c.version.toLowerCase().includes(busqueda.toLowerCase()) ||
-                c.paquete_ofimatico.toLowerCase().includes(busqueda.toLowerCase())
+                (c.familia || '').toLowerCase().includes(busqueda.toLowerCase()) ||
+                (c.cuestionario || '').toLowerCase().includes(busqueda.toLowerCase()) ||
+                (c.version || '').toLowerCase().includes(busqueda.toLowerCase()) ||
+                obtenerVersionSistemaOperativo(c).toLowerCase().includes(busqueda.toLowerCase()) ||
+                (c.paquete_ofimatico || '').toLowerCase().includes(busqueda.toLowerCase())
             )
             : catalogoFiltradoGlobal;
 
@@ -84,30 +165,97 @@ export const CatalogoCuestionarios: React.FC<Props> = ({
         });
     }, [catalogoFiltradoGlobal, busqueda, sortKey, sortDir]);
 
-    const SortIcon: React.FC<{ campo: keyof CuestionarioMeta }> = ({ campo }) => {
+    const renderSortIcon = (campo: keyof CuestionarioMeta) => {
         if (sortKey !== campo) return <ChevronsUpDown className="w-3 h-3 opacity-40" />;
         return sortDir === 'asc'
             ? <ChevronUp className="w-3 h-3" style={{ color: 'var(--accent-primary)' }} />
             : <ChevronDown className="w-3 h-3" style={{ color: 'var(--accent-primary)' }} />;
     };
 
-    const Th: React.FC<{ campo: keyof CuestionarioMeta; label: string; align?: 'left' | 'right' | 'center' }> = ({ campo, label, align = 'left' }) => (
-        <th className={`p-0 font-semibold text-muted whitespace-nowrap`}>
+    const handleResizeStart = useCallback((e: React.MouseEvent, campo: keyof CuestionarioMeta) => {
+        e.preventDefault();
+        e.stopPropagation();
+        resizingCol.current = campo;
+        startX.current = e.clientX;
+        startWidth.current = colWidths[campo] ?? DEFAULT_COLUMN_WIDTHS[campo] ?? 90;
+
+        const onMove = (ev: MouseEvent) => {
+            if (!resizingCol.current) return;
+            const diff = ev.clientX - startX.current;
+            setColWidths(prev => ({ ...prev, [resizingCol.current!]: Math.max(46, startWidth.current + diff) }));
+        };
+
+        const onUp = () => {
+            resizingCol.current = null;
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup', onUp);
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+        };
+
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+    }, [colWidths]);
+
+    const handleAutoFit = useCallback((e: React.MouseEvent, campo: keyof CuestionarioMeta) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!tableRef.current) return;
+
+        const colIdx = CATALOG_COLUMNS.findIndex(c => c.key === campo);
+        if (colIdx === -1) return;
+
+        const cells = tableRef.current.querySelectorAll(`td:nth-child(${colIdx + 1}), th:nth-child(${colIdx + 1})`);
+        let maxWidth = 52;
+        cells.forEach(cell => {
+            const el = cell as HTMLElement;
+            const previousWidth = el.style.width;
+            const previousOverflow = el.style.overflow;
+            el.style.width = 'auto';
+            el.style.overflow = 'visible';
+            el.style.whiteSpace = 'nowrap';
+            maxWidth = Math.max(maxWidth, el.scrollWidth + 18);
+            el.style.width = previousWidth;
+            el.style.overflow = previousOverflow;
+            el.style.whiteSpace = '';
+        });
+
+        setColWidths(prev => ({ ...prev, [campo]: Math.min(maxWidth, 520) }));
+    }, []);
+
+    const renderHeader = (campo: keyof CuestionarioMeta, label: string, align: ColumnAlign = 'left') => (
+        <th className="p-0 font-semibold text-muted whitespace-nowrap relative select-none">
             <button
                 onClick={() => handleSort(campo)}
-                className={`flex items-center gap-1 w-full px-2 py-2 hover:text-heading transition-colors ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : 'justify-start'}`}
+                className={`flex items-center gap-1 w-full px-2 py-2 pr-3 hover:text-heading transition-colors overflow-hidden ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : 'justify-start'}`}
                 style={{ fontWeight: 600, fontSize: 'inherit' }}
             >
-                {label}
-                <SortIcon campo={campo} />
+                <span className="truncate">{label}</span>
+                <span className="shrink-0">{renderSortIcon(campo)}</span>
             </button>
+            <span
+                aria-hidden="true"
+                onMouseDown={(e) => handleResizeStart(e, campo)}
+                onDoubleClick={(e) => handleAutoFit(e, campo)}
+                onClick={(e) => e.stopPropagation()}
+                className="absolute right-0 top-0 h-full w-2 cursor-col-resize transition-colors hover:bg-[var(--accent-primary)]"
+                title="Arrastrar para redimensionar. Doble clic para autoajustar."
+            />
         </th>
     );
 
-    const BoolIcon: React.FC<{ valor: boolean }> = ({ valor }) => (
-        valor
+    const renderBoolIcon = (valor: unknown) => (
+        valor === true
             ? <Check className="w-4 h-4 mx-auto" style={{ color: 'var(--accent-success)' }} />
-            : <Minus className="w-4 h-4 mx-auto" style={{ color: 'var(--text-tertiary)' }} />
+            : <span className="block h-4" aria-hidden="true" />
+    );
+
+    const renderTextCell = (valor: React.ReactNode, extraClassName = '') => (
+        <td className={`p-2 text-body whitespace-nowrap overflow-hidden text-ellipsis ${extraClassName}`} title={typeof valor === 'string' ? valor : undefined}>
+            {valor}
+        </td>
     );
 
     return (
@@ -138,9 +286,9 @@ export const CatalogoCuestionarios: React.FC<Props> = ({
                 >
                     {catalogo.length > 0
                         ? <><RefreshCw className="w-4 h-4" /> Reemplazar catálogo</>
-                        : <><Upload className="w-4 h-4" /> Cargar catálogo CSV</>
+                        : <><Upload className="w-4 h-4" /> Cargar catálogo</>
                     }
-                    <input type="file" accept=".csv" className="hidden" onChange={onCargarCatalogo} />
+                    <input type="file" accept=".csv,.xlsx,.xlsm" className="hidden" onChange={onCargarCatalogo} />
                 </label>
             </div>
 
@@ -148,7 +296,7 @@ export const CatalogoCuestionarios: React.FC<Props> = ({
                 <div className="text-center py-12" style={{ color: 'var(--text-tertiary)' }}>
                     <Upload className="w-10 h-10 mx-auto mb-3 opacity-40" />
                     <p className="text-sm">No se ha cargado ningún catálogo de cuestionarios.</p>
-                    <p className="text-xs mt-1">Formato esperado: CSV con delimitador «|» y columnas id_cuestionario, cuestionario, versión, tipo, estado, etc.</p>
+                    <p className="text-xs mt-1">Formato esperado: Excel o CSV con columnas como id_cuestionario, cuestionario, versión, tipo, estado, versión del sistema operativo y sistema operativo.</p>
                 </div>
             ) : (
                 <>
@@ -193,7 +341,7 @@ export const CatalogoCuestionarios: React.FC<Props> = ({
                                 <MultiSelect id="f-cat-version" label="Versión" opciones={catVersionesDisponibles} seleccionadas={catVersionesActivas} onChange={setCatVersionesActivas} formatLabel={v => v} />
                                 <MultiSelect id="f-cat-tipo" label="Tipo" opciones={catTiposDisponibles} seleccionadas={catTiposActivos} onChange={setCatTiposActivos} formatLabel={v => v} />
                                 <MultiSelect id="f-cat-estado" label="Estado" opciones={catEstadosDisponibles} seleccionadas={catEstadosActivos} onChange={setCatEstadosActivos} formatLabel={v => v} />
-                                <MultiSelect id="f-cat-so" label="Sistema Operativo" opciones={catSODisponibles} seleccionadas={catSOActivos} onChange={setCatSOActivos} formatLabel={v => v} />
+                                <MultiSelect id="f-cat-so" label="Versión del sistema operativo" opciones={catSODisponibles} seleccionadas={catSOActivos} onChange={setCatSOActivos} formatLabel={v => v} />
                                 <MultiSelect id="f-cat-ofi" label="Paquete ofimático" opciones={catOfimaticaDisponibles} seleccionadas={catOfimaticaActiva} onChange={setCatOfimaticaActiva} formatLabel={v => v} />
                             </div>
                             {/* Búsqueda */}
@@ -212,27 +360,28 @@ export const CatalogoCuestionarios: React.FC<Props> = ({
 
                     {/* Tabla */}
                     <div className="overflow-x-auto">
-                        <table className="w-full text-sm" style={{ borderCollapse: 'collapse' }}>
+                        <table
+                            ref={tableRef}
+                            className="text-sm"
+                            style={{ borderCollapse: 'collapse', tableLayout: 'fixed', width: `${tableWidth}px` }}
+                        >
+                            <colgroup>
+                                {CATALOG_COLUMNS.map(col => (
+                                    <col
+                                        key={col.key}
+                                        style={{ width: `${colWidths[col.key] ?? DEFAULT_COLUMN_WIDTHS[col.key] ?? 90}px` }}
+                                    />
+                                ))}
+                            </colgroup>
                             <thead>
                                 <tr style={{ borderBottom: '2px solid var(--border-secondary)' }}>
-                                    <Th campo="id_cuestionario" label="ID" />
-                                    <Th campo="cuestionario" label="Cuestionario" />
-                                    <Th campo="version" label="Versión" />
-                                    <Th campo="tipo" label="Tipo" />
-                                    <Th campo="estado" label="Estado" />
-                                    <Th campo="num_preguntas" label="N.º preg." align="right" />
-                                    <Th campo="sistema_operativo" label="SO" />
-                                    <Th campo="paquete_ofimatico" label="Paquete ofimático" />
-                                    <Th campo="procesador_texto" label="Texto" align="center" />
-                                    <Th campo="hoja_de_calculo" label="Cálculo" align="center" />
-                                    <Th campo="sgbd" label="SGBD" align="center" />
-                                    <Th campo="presentaciones" label="Present." align="center" />
-                                    <Th campo="cliente_correo" label="Correo" align="center" />
+                                    {CATALOG_COLUMNS.map(col => renderHeader(col.key, col.label, col.align))}
                                 </tr>
                             </thead>
                             <tbody>
                                 {catalogoAMostrar.map(c => {
                                     const cargado = cuestionariosCargados.includes(c.id_cuestionario);
+                                    const versionSistemaOperativo = obtenerVersionSistemaOperativo(c);
                                     return (
                                         <tr
                                             key={c.id_cuestionario}
@@ -245,13 +394,17 @@ export const CatalogoCuestionarios: React.FC<Props> = ({
                                             }}
                                             title={cargado && onVerCuestionario ? `Ver preguntas de ${c.id_cuestionario}` : undefined}
                                         >
-                                            <td className="p-2 font-mono font-semibold whitespace-nowrap" style={{ color: cargado ? 'var(--accent-success)' : 'var(--text-primary)' }}>
-                                                {c.id_cuestionario}
-                                                {cargado && <Check className="w-3.5 h-3.5 inline ml-1" style={{ color: 'var(--accent-success)' }} />}
-                                            </td>
-                                            <td className="p-2 text-body whitespace-nowrap">{c.cuestionario}</td>
-                                            <td className="p-2 text-body whitespace-nowrap">{c.version}</td>
-                                            <td className="p-2 text-body whitespace-nowrap">{c.tipo}</td>
+                                            {renderTextCell(
+                                                <>
+                                                    {c.id_cuestionario}
+                                                    {cargado && <Check className="w-3.5 h-3.5 inline ml-1" style={{ color: 'var(--accent-success)' }} />}
+                                                </>,
+                                                'font-mono font-semibold'
+                                            )}
+                                            {renderTextCell(c.familia)}
+                                            {renderTextCell(c.cuestionario)}
+                                            {renderTextCell(c.version)}
+                                            {renderTextCell(c.tipo)}
                                             <td className="p-2 whitespace-nowrap">
                                                 <span className="inline-block w-24 text-center px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider" style={
                                                     c.estado === 'actualizado'
@@ -263,14 +416,21 @@ export const CatalogoCuestionarios: React.FC<Props> = ({
                                                     {c.estado}
                                                 </span>
                                             </td>
+                                            <td className="p-2">{renderBoolIcon(c.recopilacion)}</td>
                                             <td className="p-2 text-right font-mono text-body">{c.num_preguntas || '—'}</td>
-                                            <td className="p-2 text-body whitespace-nowrap">{c.sistema_operativo}</td>
-                                            <td className="p-2 text-body whitespace-nowrap">{c.paquete_ofimatico}</td>
-                                            <td className="p-2"><BoolIcon valor={c.procesador_texto} /></td>
-                                            <td className="p-2"><BoolIcon valor={c.hoja_de_calculo} /></td>
-                                            <td className="p-2"><BoolIcon valor={c.sgbd} /></td>
-                                            <td className="p-2"><BoolIcon valor={c.presentaciones} /></td>
-                                            <td className="p-2"><BoolIcon valor={c.cliente_correo} /></td>
+                                            {renderTextCell(versionSistemaOperativo)}
+                                            {renderTextCell(c.paquete_ofimatico)}
+                                            {renderTextCell(c.descripcion)}
+                                            {renderTextCell(c.preparacion)}
+                                            <td className="p-2">{renderBoolIcon(c.informatica)}</td>
+                                            <td className="p-2">{renderBoolIcon(c.seguridad)}</td>
+                                            <td className="p-2">{renderBoolIcon(c.sistema_operativo)}</td>
+                                            <td className="p-2">{renderBoolIcon(c.procesador_texto)}</td>
+                                            <td className="p-2">{renderBoolIcon(c.hoja_de_calculo)}</td>
+                                            <td className="p-2">{renderBoolIcon(c.sgbd)}</td>
+                                            <td className="p-2">{renderBoolIcon(c.presentaciones)}</td>
+                                            <td className="p-2">{renderBoolIcon(c.redes)}</td>
+                                            <td className="p-2">{renderBoolIcon(c.cliente_correo)}</td>
                                         </tr>
                                     );
                                 })}

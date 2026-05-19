@@ -49,7 +49,7 @@ La aplicación estará disponible en `http://localhost:5173/cuestioanalisis/`.
 
 1. Abrir la aplicación en el navegador.
 2. Pulsar «Seleccionar CSV de preguntas» para importar uno o varios archivos CSV (delimitador `|`).
-3. Opcionalmente, cargar un catálogo CSV con metadatos de los cuestionarios.
+3. Opcionalmente, cargar un catálogo Excel o CSV con metadatos de los cuestionarios.
 4. Navegar entre las diferentes vistas mediante las pestañas de la barra superior.
 
 ## Despliegue en GitHub Pages

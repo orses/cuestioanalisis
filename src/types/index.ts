@@ -43,18 +43,24 @@ export interface Pregunta {
 
 export interface CuestionarioMeta {
     id_cuestionario: string;
+    familia: string;
     cuestionario: string;
     version: string;
     tipo: string;
     estado: string;
     recopilacion: boolean;
-    sistema_operativo: string;
+    preparacion: string;
+    informatica: boolean;
+    seguridad: boolean;
+    version_sistema_operativo: string;
+    sistema_operativo: boolean;
     paquete_ofimatico: string;
     descripcion: string;
     procesador_texto: boolean;
     hoja_de_calculo: boolean;
     sgbd: boolean;
     presentaciones: boolean;
+    redes: boolean;
     cliente_correo: boolean;
     num_preguntas: number;
 }

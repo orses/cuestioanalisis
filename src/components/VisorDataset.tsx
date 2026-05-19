@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useRef, useCallback } from 'react';
 import type { Pregunta } from '../types';
+import { obtenerEtiquetaEjercicioCuestionario } from '../utils/ejercicios';
 import { ChevronRight, ChevronLeft, Database, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 
 interface VisorDatasetProps {
@@ -152,14 +153,15 @@ export const VisorDataset: React.FC<VisorDatasetProps> = ({ preguntas, onVerPreg
         // Limitar a un máximo razonable
         maxW = Math.min(maxW, 600);
         setColWidths(prev => ({ ...prev, [colKey]: maxW }));
-    }, []);
+    }, [COLUMNS]);
 
     // Ordenación
     const sortedPreguntas = useMemo(() => {
         const items = [...preguntas];
         if (!sortConfig) return items;
         items.sort((a, b) => {
-            let aV: any, bV: any;
+            let aV: string | number | null | undefined;
+            let bV: string | number | null | undefined;
             switch (sortConfig.key) {
                 case 'id': aV = a.id; bV = b.id; break;
                 case 'num': aV = a.numero_original; bV = b.numero_original; break;
@@ -246,8 +248,8 @@ export const VisorDataset: React.FC<VisorDatasetProps> = ({ preguntas, onVerPreg
                 const tipoTxt = tipoMap[p.metadatos.tipo] || p.metadatos.tipo;
                 const partes = [`Año: ${p.metadatos.año}`, `Acceso: ${accTxt}`, `Ejercicio: ${tipoTxt}`];
                 if (p.metadatos.extraordinaria) partes.push('Incidencias: extraordinario');
-                // Mostrar solo el código de ejercicio (sin el número)
-                const ejercicio = p.id.replace(/_\d+$/, '');
+                // Mostrar el ejercicio sin el número de pregunta, diferenciando el cuestionario.
+                const ejercicio = obtenerEtiquetaEjercicioCuestionario(p);
                 return (
                     <div>
                         <div style={{ fontFamily: 'monospace', fontSize: '12px', color: 'var(--accent-primary)', fontWeight: 700 }}>{ejercicio}</div>

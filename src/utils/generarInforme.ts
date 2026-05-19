@@ -2,6 +2,7 @@ import type { Pregunta } from '../types';
 import { calcularChiCuadrado, analizarCobertura, predecirTemas, calcularDificultad, calcularChiCuadradoSegmentado } from './analytics';
 import { detectarDuplicados } from './similarity';
 import { generarInsights } from './estadisticas';
+import { obtenerClaveEjercicioCuestionario, obtenerEtiquetaEjercicioCuestionario } from './ejercicios';
 
 /**
  * Genera un informe analítico completo del dataset en formato Markdown.
@@ -26,7 +27,6 @@ export function generarInformeMarkdown(
     }
 
     // ——— Helpers reutilizables ———
-    const ejercicioDe = (p: Pregunta) => p.id.split('_').slice(0, -1).join('_') || '(sin ejercicio)';
     const fmtEscala = (v: string) => ({ AUX: 'Auxiliar', ADV: 'Administrativo', PSX: 'Servicios Grales.' } as Record<string, string>)[v] || v || '—';
     const fmtAcceso = (v: string) => ({ LI: 'Libre', PI: 'Prom. int.', PC: 'Prom. cruz.' } as Record<string, string>)[v] || v || '—';
     const fmtTipo = (v: string) => ({ PRI: 'Primero', SEG: 'Segundo', UNI: 'Único' } as Record<string, string>)[v] || v || '—';
@@ -37,7 +37,7 @@ export function generarInformeMarkdown(
     // ——————— RESUMEN GENERAL ———————
     line(`## Resumen general\n`);
     const totalAnuladas = preguntas.filter(p => p.anulada).length;
-    const ejercicios = new Set(preguntas.map(ejercicioDe));
+    const ejercicios = new Set(preguntas.map(obtenerClaveEjercicioCuestionario));
     const materias = new Set(preguntas.map(p => p.materia.toString()));
     const bloques = new Set(preguntas.map(p => p.bloque).filter(Boolean));
     const temas = new Set(preguntas.map(p => p.tema).filter(Boolean));
@@ -56,11 +56,12 @@ export function generarInformeMarkdown(
 
     // ——————— DISTRIBUCIÓN POR EJERCICIO ———————
     line(`## Ejercicios (${ejercicios.size})\n`);
-    const ejConteo = new Map<string, { organismo: string; escala: string; año: number; acceso: string; tipo: string; count: number; anuladas: number }>();
+    const ejConteo = new Map<string, { cuestionario: string; organismo: string; escala: string; año: number; acceso: string; tipo: string; count: number; anuladas: number }>();
     preguntas.forEach(p => {
-        const ej = ejercicioDe(p);
+        const ej = obtenerClaveEjercicioCuestionario(p);
         if (!ejConteo.has(ej)) {
             ejConteo.set(ej, {
+                cuestionario: p.id_cuestionario || '—',
                 organismo: p.metadatos?.organismo || '—',
                 escala: p.metadatos?.escala || '',
                 año: p.metadatos?.año || 0,
@@ -80,12 +81,14 @@ export function generarInformeMarkdown(
         const e = a.escala.localeCompare(b.escala);
         if (e !== 0) return e;
         if (a.año !== b.año) return a.año - b.año;
-        return a.acceso.localeCompare(b.acceso);
+        const ac = a.acceso.localeCompare(b.acceso);
+        if (ac !== 0) return ac;
+        return a.cuestionario.localeCompare(b.cuestionario);
     });
-    line(`| Organismo | Escala | Año | Acceso | Ejercicio | Preguntas | % | Anuladas |`);
-    line(`|-----------|--------|-----|--------|-----------|-----------|---|----------|`);
+    line(`| Cuestionario | Organismo | Escala | Año | Acceso | Ejercicio | Preguntas | % | Anuladas |`);
+    line(`|--------------|-----------|--------|-----|--------|-----------|-----------|---|----------|`);
     ejOrdenados.forEach(d => {
-        line(`| ${d.organismo || '—'} | ${fmtEscala(d.escala)} | ${d.año > 0 ? d.año : '—'} | ${fmtAcceso(d.acceso)} | ${fmtTipo(d.tipo)} | ${d.count} | ${pct(d.count)}% | ${d.anuladas || '—'} |`);
+        line(`| ${d.cuestionario || '—'} | ${d.organismo || '—'} | ${fmtEscala(d.escala)} | ${d.año > 0 ? d.año : '—'} | ${fmtAcceso(d.acceso)} | ${fmtTipo(d.tipo)} | ${d.count} | ${pct(d.count)}% | ${d.anuladas || '—'} |`);
     });
     line('');
 
@@ -235,7 +238,7 @@ export function generarInformeMarkdown(
             line(`| ID | Ejercicio | Materia | Tema |`);
             line(`|----|-----------|---------|------|`);
             listaAnuladas.forEach(p => {
-                line(`| ${p.id} | ${ejercicioDe(p)} | ${p.materia} | ${p.tema || '—'} |`);
+                line(`| ${p.id} | ${obtenerEtiquetaEjercicioCuestionario(p)} | ${p.materia} | ${p.tema || '—'} |`);
             });
             line('');
         }

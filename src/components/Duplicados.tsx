@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import type { Pregunta } from '../types';
 import { detectarDuplicados } from '../utils/similarity';
 import type { GrupoDuplicados } from '../utils/similarity';
+import { obtenerEtiquetaEjercicioCuestionario } from '../utils/ejercicios';
 import { ChevronDown, ChevronRight, Copy, Layers } from 'lucide-react';
 
 interface DuplicadosProps {
@@ -238,7 +239,7 @@ const GrupoCard: React.FC<GrupoCardProps> = ({ grupo, expandido, onToggle }) => 
                                         fontFamily: 'monospace', fontSize: '11px', fontWeight: 700,
                                         color: 'var(--accent-primary)',
                                     }}>
-                                        {p.id.replace(/_\d+$/, '')}
+                                        {obtenerEtiquetaEjercicioCuestionario(p)}
                                     </span>
                                     <span style={{
                                         fontFamily: 'monospace', fontSize: '11px', fontWeight: 700,

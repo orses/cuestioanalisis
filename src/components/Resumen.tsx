@@ -4,6 +4,7 @@ import { TrendingUp, TrendingDown, Minus, AlertCircle, BarChart3, PieChart, Laye
 import { InfoTooltip } from './InfoTooltip';
 import { ListaPopover, type ListaPopoverItem } from './ListaPopover';
 import { getMateriaColor as getColorMateria } from '../utils/colores';
+import { obtenerClaveEjercicioCuestionario } from '../utils/ejercicios';
 
 export interface FiltroTabla {
     materias?: string[];
@@ -15,7 +16,7 @@ export interface FiltroTabla {
 
 interface ResumenProps {
     preguntas: Pregunta[];
-    onVerEjercicio?: (organismo: string, escala: string, año: string, acceso: string, tipo: string) => void;
+    onVerEjercicio?: (organismo: string, escala: string, año: string, acceso: string, tipo: string, cuestionario: string) => void;
     onFiltrarYVerTabla?: (filtro: FiltroTabla) => void;
 }
 
@@ -48,7 +49,7 @@ export const Resumen: React.FC<ResumenProps> = ({ preguntas, onVerEjercicio, onF
 
     // ——— KPIs ———
     const totalPreguntas = preguntas.length;
-    const ejerciciosUnicos = useMemo(() => new Set(preguntas.map(p => p.id.split('_').slice(0, -1).join('_'))).size, [preguntas]);
+    const ejerciciosUnicos = useMemo(() => new Set(preguntas.map(obtenerClaveEjercicioCuestionario)).size, [preguntas]);
     const materiasUnicas = useMemo(() => new Set(preguntas.map(p => p.materia.toString())).size, [preguntas]);
 
     // KPIs nuevos
@@ -62,17 +63,18 @@ export const Resumen: React.FC<ResumenProps> = ({ preguntas, onVerEjercicio, onF
     const totalAnuladas = useMemo(() => preguntas.filter(p => p.anulada).length, [preguntas]);
 
     // ——— Distribución por ejercicio (tabla con metadatos) ———
-    type EjCol = 'organismo' | 'escala' | 'año' | 'acceso' | 'tipo' | 'count' | 'porcentaje' | 'anuladas';
+    type EjCol = 'cuestionario' | 'organismo' | 'escala' | 'año' | 'acceso' | 'tipo' | 'count' | 'porcentaje' | 'anuladas';
     const [ejSortCol, setEjSortCol] = useState<EjCol>('organismo');
     const [ejSortAsc, setEjSortAsc] = useState(true);
 
     const ejerciciosBase = useMemo(() => {
-        const conteo: Record<string, { count: number; organismo: string; escala: string; año: number; acceso: string; tipo: string; anuladas: number }> = {};
+        const conteo: Record<string, { count: number; cuestionario: string; organismo: string; escala: string; año: number; acceso: string; tipo: string; anuladas: number }> = {};
         preguntas.forEach(p => {
-            const ej = p.id.split('_').slice(0, -1).join('_') || '(sin ejercicio)';
+            const ej = obtenerClaveEjercicioCuestionario(p);
             if (!conteo[ej]) {
                 conteo[ej] = {
                     count: 0,
+                    cuestionario: p.id_cuestionario,
                     organismo: p.metadatos.organismo,
                     escala: p.metadatos.escala,
                     año: p.metadatos.año,
@@ -106,7 +108,11 @@ export const Resumen: React.FC<ResumenProps> = ({ preguntas, onVerEjercicio, onF
                 if (d2 !== 0) return d2;
                 const d3 = (a.año - b.año) * dir;
                 if (d3 !== 0) return d3;
-                return a.acceso.localeCompare(b.acceso) * dir;
+                const d4 = a.acceso.localeCompare(b.acceso) * dir;
+                if (d4 !== 0) return d4;
+                const d5 = a.tipo.localeCompare(b.tipo) * dir;
+                if (d5 !== 0) return d5;
+                return a.cuestionario.localeCompare(b.cuestionario) * dir;
             });
         }
         return arr;
@@ -475,7 +481,7 @@ export const Resumen: React.FC<ResumenProps> = ({ preguntas, onVerEjercicio, onF
                             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                                 <thead>
                                     <tr style={{ borderBottom: '2px solid var(--border-secondary)' }}>
-                                        {([['Organismo', 'organismo'], ['Escala', 'escala'], ['Año', 'año'], ['Acceso', 'acceso'], ['Ejercicio', 'tipo'], ['Preguntas', 'count'], ['%', 'porcentaje'], ['Anuladas', 'anuladas']] as [string, EjCol][]).map(([label, col]) => (
+                                        {([['Cuest.', 'cuestionario'], ['Organismo', 'organismo'], ['Escala', 'escala'], ['Año', 'año'], ['Acceso', 'acceso'], ['Ejercicio', 'tipo'], ['Preguntas', 'count'], ['%', 'porcentaje'], ['Anuladas', 'anuladas']] as [string, EjCol][]).map(([label, col]) => (
                                             <th key={col}
                                                 onClick={() => toggleEjSort(col)}
                                                 style={{
@@ -495,13 +501,14 @@ export const Resumen: React.FC<ResumenProps> = ({ preguntas, onVerEjercicio, onF
                                         <tr
                                             key={d.ejercicio}
                                             className="table-row-hover"
-                                            onClick={onVerEjercicio ? () => onVerEjercicio(d.organismo, d.escala, String(d.año), d.acceso, d.tipo) : undefined}
+                                            onClick={onVerEjercicio ? () => onVerEjercicio(d.organismo, d.escala, String(d.año), d.acceso, d.tipo, d.cuestionario) : undefined}
                                             style={{
                                                 borderBottom: '1px solid var(--border-secondary)',
                                                 backgroundColor: i % 2 === 0 ? 'transparent' : 'var(--bg-tertiary)',
                                                 cursor: onVerEjercicio ? 'pointer' : 'default',
                                             }}
                                         >
+                                            <td style={{ padding: '5px 10px', fontFamily: 'monospace', fontWeight: 700, color: 'var(--accent-primary)' }}>{d.cuestionario || '—'}</td>
                                             <td style={{ padding: '5px 10px', fontWeight: 600, color: 'var(--text-primary)' }}>{d.organismo || '—'}</td>
                                             <td style={{ padding: '5px 10px', color: 'var(--text-primary)' }}>
                                                 {({ AUX: 'Auxiliar', ADV: 'Administrativo', PSX: 'Servicios Grales.' } as Record<string, string>)[d.escala] || d.escala || '—'}

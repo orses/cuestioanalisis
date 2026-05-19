@@ -1,5 +1,6 @@
 import type { Pregunta } from '../types';
 import { STOP_WORDS } from './stopwords';
+import { obtenerClaveEjercicioCuestionario, obtenerEtiquetaEjercicioCuestionario } from './ejercicios';
 
 
 // ═══════════════════════════════════════════════════════
@@ -74,7 +75,7 @@ export function calcularChiCuadrado(preguntas: Pregunta[]): ChiCuadradoResult {
     let total = 0;
 
     for (const p of preguntas) {
-        if (p.correcta && dist.hasOwnProperty(p.correcta)) {
+        if (p.correcta && Object.prototype.hasOwnProperty.call(dist, p.correcta)) {
             dist[p.correcta]++;
             total++;
         }
@@ -445,14 +446,14 @@ export function generarComparativa(preguntas: Pregunta[]): ComparativaData[] {
     const porEjercicio = new Map<string, Pregunta[]>();
 
     for (const p of preguntas) {
-        const ej = p.id.replace(/_\d+$/, '');
+        const ej = obtenerClaveEjercicioCuestionario(p);
         if (!porEjercicio.has(ej)) porEjercicio.set(ej, []);
         porEjercicio.get(ej)!.push(p);
     }
 
     const datos: ComparativaData[] = [];
 
-    for (const [ejercicio, ps] of porEjercicio) {
+    for (const [, ps] of porEjercicio) {
         const materias: Record<string, number> = {};
         const bloques: Record<string, number> = {};
         const temas: Record<string, number> = {};
@@ -466,14 +467,14 @@ export function generarComparativa(preguntas: Pregunta[]): ComparativaData[] {
             if (p.bloque) bloques[p.bloque] = (bloques[p.bloque] || 0) + 1;
             if (p.tema) temas[p.tema] = (temas[p.tema] || 0) + 1;
             if (p.aplicacion) programas[p.aplicacion] = (programas[p.aplicacion] || 0) + 1;
-            if (p.correcta && distCorrecta.hasOwnProperty(p.correcta)) {
+            if (p.correcta && Object.prototype.hasOwnProperty.call(distCorrecta, p.correcta)) {
                 distCorrecta[p.correcta]++;
             }
             if (p.anulada) anuladas++;
         }
 
         datos.push({
-            ejercicio,
+            ejercicio: obtenerEtiquetaEjercicioCuestionario(ps[0]),
             año: ps[0].metadatos.año,
             organismo: ps[0].metadatos.organismo,
             escala: ps[0].metadatos.escala,
@@ -889,18 +890,18 @@ export interface ChiSegmentadoItem {
 export function calcularChiCuadradoSegmentado(preguntas: Pregunta[]): ChiSegmentadoItem[] {
     const porEjercicio = new Map<string, Pregunta[]>();
     for (const p of preguntas) {
-        const ej = p.id.replace(/_\d+$/, '');
+        const ej = obtenerClaveEjercicioCuestionario(p);
         if (!porEjercicio.has(ej)) porEjercicio.set(ej, []);
         porEjercicio.get(ej)!.push(p);
     }
 
     const resultados: ChiSegmentadoItem[] = [];
 
-    for (const [ejercicio, ps] of porEjercicio) {
+    for (const [, ps] of porEjercicio) {
         const dist: Record<string, number> = { A: 0, B: 0, C: 0, D: 0 };
         let total = 0;
         for (const p of ps) {
-            if (p.correcta && dist.hasOwnProperty(p.correcta)) {
+            if (p.correcta && Object.prototype.hasOwnProperty.call(dist, p.correcta)) {
                 dist[p.correcta]++;
                 total++;
             }
@@ -915,7 +916,7 @@ export function calcularChiCuadradoSegmentado(preguntas: Pregunta[]): ChiSegment
         const pValue = chiSquarePValue(chi2, 3);
 
         resultados.push({
-            ejercicio,
+            ejercicio: obtenerEtiquetaEjercicioCuestionario(ps[0]),
             año: ps[0]?.metadatos.año || 0,
             totalPreguntas: total,
             distribucion: dist,
@@ -1019,7 +1020,7 @@ export function calcularCorrelacionMaterias(
     // Agrupar por convocatoria
     const porConvo = new Map<string, Pregunta[]>();
     for (const p of preguntas) {
-        const ej = p.id.replace(/_\d+$/, '');
+        const ej = obtenerClaveEjercicioCuestionario(p);
         if (!porConvo.has(ej)) porConvo.set(ej, []);
         porConvo.get(ej)!.push(p);
     }
@@ -1283,11 +1284,11 @@ export function analizarPatronesOrganismoEscala(preguntas: Pregunta[]): PatronOr
         for (const p of ps) {
             const blq = p.bloque || '(vacío)';
             bloques[blq] = (bloques[blq] || 0) + 1;
-            if (p.correcta && distCorrecta.hasOwnProperty(p.correcta)) {
+            if (p.correcta && Object.prototype.hasOwnProperty.call(distCorrecta, p.correcta)) {
                 distCorrecta[p.correcta]++;
             }
             if (p.anulada) anuladas++;
-            ejercicioSet.add(p.id.replace(/_\d+$/, ''));
+            ejercicioSet.add(obtenerClaveEjercicioCuestionario(p));
             añosSet.add(p.metadatos.año);
         }
 
@@ -1376,7 +1377,7 @@ export function analizarPosicion(preguntas: Pregunta[]): AnalisisPosicion {
     for (let t = 0; t < 3; t++) {
         const dist: Record<string, number> = { A: 0, B: 0, C: 0, D: 0 };
         for (const p of tercios[t]) {
-            if (dist.hasOwnProperty(p.letraCorrecta)) dist[p.letraCorrecta]++;
+            if (Object.prototype.hasOwnProperty.call(dist, p.letraCorrecta)) dist[p.letraCorrecta]++;
         }
         distribucionPorPosicion[labels[t]] = dist;
     }

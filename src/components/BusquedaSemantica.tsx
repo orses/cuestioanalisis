@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import type { Pregunta } from '../types';
 import { agruparPorConcepto, calcularDificultad } from '../utils/analytics';
+import { obtenerEtiquetaEjercicioCuestionario } from '../utils/ejercicios';
 import { Search, ChevronDown, ChevronRight, Gauge } from 'lucide-react';
 
 interface BusquedaSemanticaProps {
@@ -147,7 +148,7 @@ export const BusquedaSemantica: React.FC<BusquedaSemanticaProps> = ({ preguntas,
                                                         fontFamily: 'monospace', fontSize: '10px', fontWeight: 700,
                                                         color: 'var(--accent-primary)',
                                                     }}>
-                                                        {p.id.replace(/_\d+$/, '')} N.º{p.numero_original}
+                                                        {obtenerEtiquetaEjercicioCuestionario(p)} N.º{p.numero_original}
                                                     </span>
                                                     <span style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>
                                                         {p.metadatos.año}
