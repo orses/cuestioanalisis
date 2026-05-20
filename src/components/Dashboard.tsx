@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from 'chart.js';
+import type { ActiveElement, ChartEvent } from 'chart.js';
 import { Pie, Bar } from 'react-chartjs-2';
 import type { Pregunta } from '../types';
 import { detectarDuplicados } from '../utils/similarity';
@@ -100,7 +101,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ preguntas, setMateriasActi
             legend: { position: 'right' as const },
         },
         maintainAspectRatio: false,
-        onClick: (_event: any, elements: any[]) => {
+        onClick: (_event: ChartEvent, elements: ActiveElement[]) => {
             if (elements.length > 0 && setMateriasActivas) {
                 const index = elements[0].index;
                 const materiaStr = dataMaterias.labels[index].toLowerCase();
@@ -115,7 +116,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ preguntas, setMateriasActi
         plugins: {
             legend: { position: 'top' as const },
         },
-        onClick: (_event: any, elements: any[]) => {
+        onClick: (_event: ChartEvent, elements: ActiveElement[]) => {
             if (elements.length > 0 && setMateriasActivas) {
                 const index = elements[0].index;
                 const materiaStr = dataDistractores.labels[index].toLowerCase();

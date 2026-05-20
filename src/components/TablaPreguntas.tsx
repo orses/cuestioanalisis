@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import type { Pregunta } from '../types';
 import { ChevronDown, ChevronUp, AlertCircle, CheckCircle2, XCircle, Save, Pencil, Copy, Check } from 'lucide-react';
 import { getMateriaColor } from '../utils/colores';
+import { formatAccessLabel, formatCallTypeLabel, formatExerciseTypeLabel, formatModelLabel, formatQuotaLabel, formatScaleLabel, formatVariantLabel } from '../utils/metadata';
 
 interface TablaPreguntasProps {
     preguntas: Pregunta[];
@@ -26,7 +27,6 @@ export const TablaPreguntas: React.FC<TablaPreguntasProps> = ({ preguntas, onGua
 
     useEffect(() => {
         if (preguntaExpandida) {
-            setExpandidas(prev => new Set(prev).add(preguntaExpandida));
             // Hacer scroll a la tarjeta después de un breve delay para que se renderice
             setTimeout(() => {
                 const el = document.getElementById(`tarjeta-${preguntaExpandida}`);
@@ -34,6 +34,8 @@ export const TablaPreguntas: React.FC<TablaPreguntasProps> = ({ preguntas, onGua
             }, 100);
         }
     }, [preguntaExpandida]);
+
+    const estaExpandida = (preguntaId: string) => expandidas.has(preguntaId) || preguntaExpandida === preguntaId;
 
     // Campos de edición temporal
     const [editMateria, setEditMateria] = useState('');
@@ -146,19 +148,34 @@ export const TablaPreguntas: React.FC<TablaPreguntasProps> = ({ preguntas, onGua
                                         <tr
                                             id={`tarjeta-${pregunta.id}`}
                                             className="hover:bg-muted cursor-pointer transition-colors"
-                                            onClick={() => onVerPregunta ? onVerPregunta(pregunta.id) : toggleExpand(pregunta.id)}
+                                            onClick={() => {
+                                                if (onVerPregunta) {
+                                                    onVerPregunta(pregunta.id);
+                                                } else {
+                                                    toggleExpand(pregunta.id);
+                                                }
+                                            }}
                                             tabIndex={0}
                                             role="button"
-                                            aria-expanded={expandidas.has(pregunta.id)}
-                                            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onVerPregunta ? onVerPregunta(pregunta.id) : toggleExpand(pregunta.id); } }}
+                                            aria-expanded={estaExpandida(pregunta.id)}
+                                            onKeyDown={e => {
+                                                if (e.key === 'Enter' || e.key === ' ') {
+                                                    e.preventDefault();
+                                                    if (onVerPregunta) {
+                                                        onVerPregunta(pregunta.id);
+                                                    } else {
+                                                        toggleExpand(pregunta.id);
+                                                    }
+                                                }
+                                            }}
                                         >
                                             <td className="px-4 py-4 whitespace-nowrap text-muted">
-                                                {expandidas.has(pregunta.id) ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                                                {estaExpandida(pregunta.id) ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
                                             </td>
                                             <td className="px-4 py-4 whitespace-nowrap">
                                                 <div className="text-sm font-medium text-heading">{pregunta.id}</div>
                                                 <div className="text-xs text-muted">
-                                                    {pregunta.metadatos.año} • {pregunta.metadatos.escala === 'AUX' ? 'Auxiliar administrativo' : pregunta.metadatos.escala === 'ADV' ? 'Administrativo' : pregunta.metadatos.escala === 'PSX' ? 'Personal de Servicios Generales' : pregunta.metadatos.escala}
+                                                    {pregunta.metadatos.año} • {formatScaleLabel(pregunta.metadatos.escala)}
                                                 </div>
                                             </td>
                                             <td className="px-4 py-4">
@@ -214,7 +231,7 @@ export const TablaPreguntas: React.FC<TablaPreguntasProps> = ({ preguntas, onGua
                                         </tr>
                                     )}
                                     {
-                                        (expandidas.has(pregunta.id) || soloDetalle) && (
+                                        (estaExpandida(pregunta.id) || soloDetalle) && (
                                             <tr className="bg-muted">
                                                 <td colSpan={5} className={soloDetalle ? "px-4 py-3" : "px-4 py-6"} style={{ borderBottom: '2px solid var(--accent-primary)' }}>
                                                     <div className={soloDetalle ? "max-w-5xl" : "pl-10 pr-6 max-w-5xl"}>
@@ -358,24 +375,42 @@ export const TablaPreguntas: React.FC<TablaPreguntasProps> = ({ preguntas, onGua
                                                                     </div>
                                                                     <div>
                                                                         <span className="block text-[10px] text-muted uppercase mb-0.5">Escala</span>
-                                                                        <span className="font-medium text-heading cursor-pointer hover:underline" onClick={(e) => { e.stopPropagation(); onFiltrarEscala?.(pregunta.metadatos.escala); }} title={`Filtrar por escala: ${pregunta.metadatos.escala === 'AUX' ? 'Auxiliar administrativo' : pregunta.metadatos.escala === 'ADV' ? 'Administrativo' : pregunta.metadatos.escala === 'PSX' ? 'Personal de Servicios Generales' : pregunta.metadatos.escala}`}>{pregunta.metadatos.escala === 'AUX' ? 'Auxiliar administrativo' : pregunta.metadatos.escala === 'ADV' ? 'Administrativo' : pregunta.metadatos.escala === 'PSX' ? 'Personal de Servicios Generales' : pregunta.metadatos.escala}</span>
+                                                                        <span className="font-medium text-heading cursor-pointer hover:underline" onClick={(e) => { e.stopPropagation(); onFiltrarEscala?.(pregunta.metadatos.escala); }} title={`Filtrar por escala: ${formatScaleLabel(pregunta.metadatos.escala)}`}>{formatScaleLabel(pregunta.metadatos.escala)}</span>
                                                                     </div>
                                                                     <div>
                                                                         <span className="block text-[10px] text-muted uppercase mb-0.5">Año</span>
                                                                         <span className="font-medium text-heading cursor-pointer hover:underline" onClick={(e) => { e.stopPropagation(); onFiltrarAño?.(String(pregunta.metadatos.año)); }} title={`Filtrar por año: ${pregunta.metadatos.año}`}>{pregunta.metadatos.año}</span>
                                                                     </div>
+                                                                    {pregunta.metadatos.tipoConvocatoria && (
+                                                                        <div>
+                                                                            <span className="block text-[10px] text-muted uppercase mb-0.5">Tipo convocatoria</span>
+                                                                            <span className="font-medium text-heading">{formatCallTypeLabel(pregunta.metadatos.tipoConvocatoria)}</span>
+                                                                        </div>
+                                                                    )}
                                                                     <div>
                                                                         <span className="block text-[10px] text-muted uppercase mb-0.5">Acceso</span>
-                                                                        <span className="font-medium text-heading cursor-pointer hover:underline" onClick={(e) => { e.stopPropagation(); onFiltrarAcceso?.(pregunta.metadatos.acceso); }} title={`Filtrar por acceso: ${({ LI: 'Libre', PI: 'Prom. interna', PC: 'Prom. cruzada' } as Record<string, string>)[pregunta.metadatos.acceso] || pregunta.metadatos.acceso}`}>{({ LI: 'Libre', PI: 'Prom. interna', PC: 'Prom. cruzada' } as Record<string, string>)[pregunta.metadatos.acceso] || pregunta.metadatos.acceso}</span>
+                                                                        <span className="font-medium text-heading cursor-pointer hover:underline" onClick={(e) => { e.stopPropagation(); onFiltrarAcceso?.(pregunta.metadatos.acceso); }} title={`Filtrar por acceso: ${formatAccessLabel(pregunta.metadatos.acceso)}`}>{formatAccessLabel(pregunta.metadatos.acceso)}</span>
                                                                     </div>
+                                                                    {pregunta.metadatos.cupo && (
+                                                                        <div>
+                                                                            <span className="block text-[10px] text-muted uppercase mb-0.5">Cupo</span>
+                                                                            <span className="font-medium text-heading">{formatQuotaLabel(pregunta.metadatos.cupo)}</span>
+                                                                        </div>
+                                                                    )}
                                                                     <div>
                                                                         <span className="block text-[10px] text-muted uppercase mb-0.5">Ejercicio</span>
-                                                                        <span className="font-medium text-heading cursor-pointer hover:underline" onClick={(e) => { e.stopPropagation(); onFiltrarEjercicio?.(pregunta.metadatos.tipo); }} title={`Filtrar por ejercicio: ${({ PRI: 'Primero', SEG: 'Segundo', UNI: 'Único' } as Record<string, string>)[pregunta.metadatos.tipo] || pregunta.metadatos.tipo}`}>{({ PRI: 'Primero', SEG: 'Segundo', UNI: 'Único' } as Record<string, string>)[pregunta.metadatos.tipo] || pregunta.metadatos.tipo}</span>
+                                                                        <span className="font-medium text-heading cursor-pointer hover:underline" onClick={(e) => { e.stopPropagation(); onFiltrarEjercicio?.(pregunta.metadatos.tipo); }} title={`Filtrar por ejercicio: ${formatExerciseTypeLabel(pregunta.metadatos.tipo)}`}>{formatExerciseTypeLabel(pregunta.metadatos.tipo)}</span>
                                                                     </div>
+                                                                    {pregunta.metadatos.modelo && (
+                                                                        <div>
+                                                                            <span className="block text-[10px] text-muted uppercase mb-0.5">Modelo</span>
+                                                                            <span className="font-medium text-heading">{formatModelLabel(pregunta.metadatos.modelo)}</span>
+                                                                        </div>
+                                                                    )}
                                                                     {pregunta.metadatos.variante && (
                                                                         <div>
                                                                             <span className="block text-[10px] text-muted uppercase mb-0.5">Variante</span>
-                                                                            <span className="font-medium text-heading">{pregunta.metadatos.variante.replace(/\bEXT\b/g, 'Extraordinario').replace(/_/g, ' ')}</span>
+                                                                            <span className="font-medium text-heading">{formatVariantLabel(pregunta.metadatos.variante)}</span>
                                                                         </div>
                                                                     )}
                                                                 </div>

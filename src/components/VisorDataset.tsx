@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef, useCallback } from 'react';
 import type { Pregunta } from '../types';
 import { obtenerEtiquetaEjercicioCuestionario } from '../utils/ejercicios';
+import { formatAccessLabel, formatCallTypeLabel, formatExerciseTypeLabel, formatQuotaLabel } from '../utils/metadata';
 import { Database, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 
 interface VisorDatasetProps {
@@ -30,8 +31,11 @@ const WIDTH_RULES: Record<string, { min: number; max: number; fallback: number }
     org: { min: 78, max: 150, fallback: 100 },
     escala: { min: 70, max: 120, fallback: 84 },
     año: { min: 58, max: 70, fallback: 62 },
+    tipo_convocatoria: { min: 82, max: 130, fallback: 96 },
     acceso: { min: 70, max: 100, fallback: 80 },
+    cupo: { min: 70, max: 110, fallback: 82 },
     tipo: { min: 64, max: 96, fallback: 74 },
+    modelo: { min: 64, max: 82, fallback: 70 },
     variante: { min: 82, max: 160, fallback: 100 },
     extra: { min: 96, max: 120, fallback: 104 },
     materia_cruda: { min: 100, max: 150, fallback: 115 },
@@ -72,8 +76,11 @@ const COLUMNS_CRUDA: ColumnDef[] = [
     { key: 'org', label: 'Organismo' },
     { key: 'escala', label: 'Escala' },
     { key: 'año', label: 'Año' },
+    { key: 'tipo_convocatoria', label: 'Tipo conv.' },
     { key: 'acceso', label: 'Acceso' },
+    { key: 'cupo', label: 'Cupo' },
     { key: 'tipo', label: 'Tipo' },
+    { key: 'modelo', label: 'Modelo' },
     { key: 'variante', label: 'Variante' },
     { key: 'extra', label: 'Extraordinaria' },
     { key: 'materia_cruda', label: 'Materia' },
@@ -122,8 +129,11 @@ function obtenerTextoCelda(p: Pregunta, key: string): string {
         case 'org': return p.metadatos.organismo ?? '';
         case 'escala': return p.metadatos.escala ?? '';
         case 'año': return String(p.metadatos.año ?? '');
+        case 'tipo_convocatoria': return p.metadatos.tipoConvocatoria ?? '';
         case 'acceso': return p.metadatos.acceso ?? '';
+        case 'cupo': return p.metadatos.cupo ?? '';
         case 'tipo': return p.metadatos.tipo ?? '';
+        case 'modelo': return p.metadatos.modelo ?? '';
         case 'variante': return p.metadatos.variante ?? '';
         case 'extra': return p.metadatos.extraordinaria ? 'true' : 'false';
         case 'materia_cruda': return p.materia?.toString() ?? '';
@@ -279,8 +289,11 @@ export const VisorDataset: React.FC<VisorDatasetProps> = ({ preguntas, onVerPreg
                 case 'org': aV = a.metadatos.organismo ?? ''; bV = b.metadatos.organismo ?? ''; break;
                 case 'escala': aV = a.metadatos.escala ?? ''; bV = b.metadatos.escala ?? ''; break;
                 case 'año': aV = a.metadatos.año ?? 0; bV = b.metadatos.año ?? 0; break;
+                case 'tipo_convocatoria': aV = a.metadatos.tipoConvocatoria ?? ''; bV = b.metadatos.tipoConvocatoria ?? ''; break;
                 case 'acceso': aV = a.metadatos.acceso ?? ''; bV = b.metadatos.acceso ?? ''; break;
+                case 'cupo': aV = a.metadatos.cupo ?? ''; bV = b.metadatos.cupo ?? ''; break;
                 case 'tipo': aV = a.metadatos.tipo ?? ''; bV = b.metadatos.tipo ?? ''; break;
+                case 'modelo': aV = a.metadatos.modelo ?? ''; bV = b.metadatos.modelo ?? ''; break;
                 case 'variante': aV = a.metadatos.variante ?? ''; bV = b.metadatos.variante ?? ''; break;
                 case 'extra': aV = a.metadatos.extraordinaria ? 1 : 0; bV = b.metadatos.extraordinaria ? 1 : 0; break;
                 case 'materia_cruda': aV = a.materia?.toString() ?? ''; bV = b.materia?.toString() ?? ''; break;
@@ -334,11 +347,14 @@ export const VisorDataset: React.FC<VisorDatasetProps> = ({ preguntas, onVerPreg
     const getCellValue = (p: Pregunta, key: string): React.ReactNode => {
         switch (key) {
             case 'id': {
-                const accesoMap: Record<string, string> = { LI: 'libre', PI: 'prom. interna', PC: 'prom. cruzada' };
-                const tipoMap: Record<string, string> = { PRI: 'primero', SEG: 'segundo', UNI: 'único' };
-                const accTxt = accesoMap[p.metadatos.acceso] || p.metadatos.acceso;
-                const tipoTxt = tipoMap[p.metadatos.tipo] || p.metadatos.tipo;
-                const partes = [`Año: ${p.metadatos.año}`, `Acceso: ${accTxt}`, `Ejercicio: ${tipoTxt}`];
+                const accTxt = formatAccessLabel(p.metadatos.acceso, 'full').toLowerCase();
+                const tipoTxt = formatExerciseTypeLabel(p.metadatos.tipo).toLowerCase();
+                const partes = [`Año: ${p.metadatos.año}`];
+                if (p.metadatos.tipoConvocatoria) partes.push(`Tipo convocatoria: ${formatCallTypeLabel(p.metadatos.tipoConvocatoria).toLowerCase()}`);
+                partes.push(`Acceso: ${accTxt}`);
+                if (p.metadatos.cupo) partes.push(`Cupo: ${formatQuotaLabel(p.metadatos.cupo).toLowerCase()}`);
+                partes.push(`Ejercicio: ${tipoTxt}`);
+                if (p.metadatos.modelo) partes.push(`Modelo: ${p.metadatos.modelo}`);
                 if (p.metadatos.extraordinaria) partes.push('Incidencias: extraordinario');
                 // Mostrar el ejercicio sin el número de pregunta, diferenciando el cuestionario.
                 const ejercicio = obtenerEtiquetaEjercicioCuestionario(p);
@@ -399,8 +415,11 @@ export const VisorDataset: React.FC<VisorDatasetProps> = ({ preguntas, onVerPreg
             case 'org': return <span style={{ fontSize: '11px' }}>{p.metadatos.organismo}</span>;
             case 'escala': return <span style={{ fontSize: '11px' }}>{p.metadatos.escala}</span>;
             case 'año': return <span style={{ fontSize: '11px', fontFamily: 'monospace' }}>{p.metadatos.año}</span>;
+            case 'tipo_convocatoria': return <span style={{ fontSize: '11px' }}>{p.metadatos.tipoConvocatoria}</span>;
             case 'acceso': return <span style={{ fontSize: '11px' }}>{p.metadatos.acceso}</span>;
+            case 'cupo': return <span style={{ fontSize: '11px' }}>{p.metadatos.cupo}</span>;
             case 'tipo': return <span style={{ fontSize: '11px' }}>{p.metadatos.tipo}</span>;
+            case 'modelo': return <span style={{ fontSize: '11px' }}>{p.metadatos.modelo}</span>;
             case 'variante': return <span style={{ fontSize: '11px' }}>{p.metadatos.variante}</span>;
             case 'extra': return <span style={{ fontSize: '11px', fontWeight: 600, color: p.metadatos.extraordinaria ? 'var(--accent-danger)' : 'inherit' }}>{p.metadatos.extraordinaria ? 'true' : 'false'}</span>;
             case 'materia_cruda': return <span style={{ fontSize: '11px' }}>{p.materia}</span>;

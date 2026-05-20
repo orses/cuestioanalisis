@@ -3,6 +3,7 @@ import { calcularChiCuadrado, analizarCobertura, predecirTemas, calcularDificult
 import { detectarDuplicados } from './similarity';
 import { generarInsights } from './estadisticas';
 import { obtenerClaveEjercicioCuestionario, obtenerEtiquetaEjercicioCuestionario } from './ejercicios';
+import { formatAccessLabel, formatCallTypeLabel, formatExerciseTypeLabel, formatModelLabel, formatQuotaLabel, formatScaleLabel } from './metadata';
 
 /**
  * Genera un informe analítico completo del dataset en formato Markdown.
@@ -27,9 +28,10 @@ export function generarInformeMarkdown(
     }
 
     // ——— Helpers reutilizables ———
-    const fmtEscala = (v: string) => ({ AUX: 'Auxiliar', ADV: 'Administrativo', PSX: 'Servicios Grales.' } as Record<string, string>)[v] || v || '—';
-    const fmtAcceso = (v: string) => ({ LI: 'Libre', PI: 'Prom. int.', PC: 'Prom. cruz.' } as Record<string, string>)[v] || v || '—';
-    const fmtTipo = (v: string) => ({ PRI: 'Primero', SEG: 'Segundo', UNI: 'Único' } as Record<string, string>)[v] || v || '—';
+    const fmtEscala = (v: string) => formatScaleLabel(v, 'short');
+    const fmtTipoConvocatoria = (v: string) => formatCallTypeLabel(v, 'short');
+    const fmtAcceso = (v: string) => formatAccessLabel(v, 'short');
+    const fmtTipo = (v: string) => formatExerciseTypeLabel(v);
     const limpiarAplicacion = (a?: string) => a ? a.replace(/\s*\b\d+.*$/i, '').trim() : '';
     const total = preguntas.length;
     const pct = (n: number) => total > 0 ? (n / total * 100).toFixed(1) : '0.0';
@@ -56,7 +58,7 @@ export function generarInformeMarkdown(
 
     // ——————— DISTRIBUCIÓN POR EJERCICIO ———————
     line(`## Ejercicios (${ejercicios.size})\n`);
-    const ejConteo = new Map<string, { cuestionario: string; organismo: string; escala: string; año: number; acceso: string; tipo: string; count: number; anuladas: number }>();
+    const ejConteo = new Map<string, { cuestionario: string; organismo: string; escala: string; año: number; tipoConvocatoria: string; acceso: string; cupo: string; tipo: string; modelo: string; count: number; anuladas: number }>();
     preguntas.forEach(p => {
         const ej = obtenerClaveEjercicioCuestionario(p);
         if (!ejConteo.has(ej)) {
@@ -65,8 +67,11 @@ export function generarInformeMarkdown(
                 organismo: p.metadatos?.organismo || '—',
                 escala: p.metadatos?.escala || '',
                 año: p.metadatos?.año || 0,
+                tipoConvocatoria: p.metadatos?.tipoConvocatoria || '',
                 acceso: p.metadatos?.acceso || '',
+                cupo: p.metadatos?.cupo || '',
                 tipo: p.metadatos?.tipo || '',
+                modelo: p.metadatos?.modelo || '',
                 count: 0,
                 anuladas: 0,
             });
@@ -81,14 +86,22 @@ export function generarInformeMarkdown(
         const e = a.escala.localeCompare(b.escala);
         if (e !== 0) return e;
         if (a.año !== b.año) return a.año - b.año;
+        const tc = a.tipoConvocatoria.localeCompare(b.tipoConvocatoria);
+        if (tc !== 0) return tc;
         const ac = a.acceso.localeCompare(b.acceso);
         if (ac !== 0) return ac;
+        const c = a.cupo.localeCompare(b.cupo);
+        if (c !== 0) return c;
+        const t = a.tipo.localeCompare(b.tipo);
+        if (t !== 0) return t;
+        const m = a.modelo.localeCompare(b.modelo);
+        if (m !== 0) return m;
         return a.cuestionario.localeCompare(b.cuestionario);
     });
-    line(`| Cuestionario | Organismo | Escala | Año | Acceso | Ejercicio | Preguntas | % | Anuladas |`);
-    line(`|--------------|-----------|--------|-----|--------|-----------|-----------|---|----------|`);
+    line(`| Cuestionario | Organismo | Escala | Año | Tipo convocatoria | Acceso | Cupo | Ejercicio | Modelo | Preguntas | % | Anuladas |`);
+    line(`|--------------|-----------|--------|-----|-------------------|--------|------|-----------|--------|-----------|---|----------|`);
     ejOrdenados.forEach(d => {
-        line(`| ${d.cuestionario || '—'} | ${d.organismo || '—'} | ${fmtEscala(d.escala)} | ${d.año > 0 ? d.año : '—'} | ${fmtAcceso(d.acceso)} | ${fmtTipo(d.tipo)} | ${d.count} | ${pct(d.count)}% | ${d.anuladas || '—'} |`);
+        line(`| ${d.cuestionario || '—'} | ${d.organismo || '—'} | ${fmtEscala(d.escala)} | ${d.año > 0 ? d.año : '—'} | ${fmtTipoConvocatoria(d.tipoConvocatoria)} | ${fmtAcceso(d.acceso)} | ${formatQuotaLabel(d.cupo)} | ${fmtTipo(d.tipo)} | ${formatModelLabel(d.modelo)} | ${d.count} | ${pct(d.count)}% | ${d.anuladas || '—'} |`);
     });
     line('');
 

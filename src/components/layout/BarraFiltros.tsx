@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Filter, X, ChevronDown, Search } from 'lucide-react';
 import { MultiSelect } from '../MultiSelect';
+import { formatAccessLabel, formatExerciseTypeLabel, formatScaleLabel } from '../../utils/metadata';
 
 interface BarraFiltrosProps {
     totalFiltradas: number;
@@ -88,9 +89,9 @@ export const BarraFiltros: React.FC<BarraFiltrosProps> = ({
     ].filter(arr => arr.length > 0).length + (state.busqueda ? 1 : 0);
 
     // ——— Formatters para mostrar valores legibles en los chips ———
-    const fmtEscala = (v: string) => ({ AUX: 'Auxiliar administrativo', ADV: 'Administrativo', PSX: 'Personal de Servicios Generales' } as Record<string, string>)[v] || v;
-    const fmtAcceso = (v: string) => ({ LI: 'Libre', PI: 'Prom. interna', PC: 'Prom. cruzada' } as Record<string, string>)[v] || v;
-    const fmtEjercicio = (v: string) => ({ PRI: 'Primero', SEG: 'Segundo', UNI: 'Único' } as Record<string, string>)[v] || v;
+    const fmtEscala = (v: string) => formatScaleLabel(v, 'full');
+    const fmtAcceso = (v: string) => formatAccessLabel(v, 'full');
+    const fmtEjercicio = (v: string) => formatExerciseTypeLabel(v);
 
     // ——— Chips de filtros activos ———
     type ChipActivo = { key: string; label: string; valor: string; onQuitar: () => void };
@@ -225,10 +226,10 @@ export const BarraFiltros: React.FC<BarraFiltrosProps> = ({
                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 pt-1">
                         {/* Convocatoria */}
                         <MultiSelect id="f-organismo" label="Organismo" opciones={disponibles.organismos} seleccionadas={state.organismos} onChange={setOrganismos} formatLabel={v => v} />
-                        <MultiSelect id="f-escala" label="Escala" opciones={disponibles.escalas} seleccionadas={state.escalas} onChange={setEscalas} formatLabel={v => ({ AUX: 'Auxiliar administrativo', ADV: 'Administrativo', PSX: 'Personal de Servicios Generales' } as Record<string, string>)[v] || v} />
+                        <MultiSelect id="f-escala" label="Escala" opciones={disponibles.escalas} seleccionadas={state.escalas} onChange={setEscalas} formatLabel={fmtEscala} />
                         <MultiSelect id="f-anyo" label="Año" opciones={disponibles.años} seleccionadas={state.años} onChange={setAños} formatLabel={v => v} />
-                        <MultiSelect id="f-acceso" label="Acceso" opciones={disponibles.accesos} seleccionadas={state.accesos} onChange={setAccesos} formatLabel={v => ({ LI: 'Libre', PI: 'Prom. interna', PC: 'Prom. cruzada' } as Record<string, string>)[v] || v} />
-                        <MultiSelect id="f-ejercicio" label="Ejercicio" opciones={disponibles.ejercicios} seleccionadas={state.ejercicios} onChange={setEjercicios} formatLabel={v => ({ PRI: 'Primero', SEG: 'Segundo', UNI: 'Único' } as Record<string, string>)[v] || v} />
+                        <MultiSelect id="f-acceso" label="Acceso" opciones={disponibles.accesos} seleccionadas={state.accesos} onChange={setAccesos} formatLabel={fmtAcceso} />
+                        <MultiSelect id="f-ejercicio" label="Ejercicio" opciones={disponibles.ejercicios} seleccionadas={state.ejercicios} onChange={setEjercicios} formatLabel={fmtEjercicio} />
                         {/* Clasificación temática */}
                         <MultiSelect id="f-materia" label="Materia" opciones={disponibles.materias} seleccionadas={state.materias} onChange={setMaterias} />
                         <MultiSelect id="f-bloque" label="Bloque" opciones={disponibles.bloques} seleccionadas={state.bloques} onChange={setBloques} formatLabel={v => v} />

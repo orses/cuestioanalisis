@@ -30,7 +30,11 @@ export const CoberturaTematica: React.FC<CoberturaTematicaProps> = ({ preguntas 
     const toggleNivel = (nivel: string) => {
         setNivelesExpandidos(prev => {
             const next = new Set(prev);
-            next.has(nivel) ? next.delete(nivel) : next.add(nivel);
+            if (next.has(nivel)) {
+                next.delete(nivel);
+            } else {
+                next.add(nivel);
+            }
             return next;
         });
     };

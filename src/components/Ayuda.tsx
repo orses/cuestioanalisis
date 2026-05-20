@@ -177,7 +177,7 @@ export const Ayuda: React.FC = () => {
                             </thead>
                             <tbody>
                                 {[
-                                    { campo: 'ejercicio', oblig: 'Sí', color: 'var(--accent-success)', desc: 'Código del metadato (ej. INAP_AUX_21_LI_1A_EXT). De aquí se extrae el organismo, año, turno, etc.' },
+                                    { campo: 'ejercicio', oblig: 'Sí', color: 'var(--accent-success)', desc: 'Código del metadato (ej. SERGAS_AUX_24_ES_LI_DI_ESP_A). De aquí se extraen organismo, escala, año, tipo de convocatoria, acceso, cupo, ejercicio y modelo.' },
                                     { campo: 'año', oblig: 'No (Fallback)', color: 'var(--accent-warning)', desc: 'Si no se provee, se intentará deducir del campo ejercicio. Vital para la regresión lineal.' },
                                     { campo: 'numero', oblig: 'Sí', color: 'var(--accent-success)', desc: 'Id original de la pregunta en la plantilla física del examen.' },
                                     { campo: 'materia', oblig: 'Sí', color: 'var(--accent-success)', desc: 'Nivel 1 de la taxonomía (ej. «informática», «legislación»). Obligatorio.' },

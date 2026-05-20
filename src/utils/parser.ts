@@ -2,6 +2,7 @@ import Papa from 'papaparse';
 import JSZip from 'jszip';
 import type { Pregunta, ConceptoAdyacente, DatasetAnalisis, CuestionarioMeta, MetadatosEjercicio } from '../types';
 import { obtenerEjercicioBase } from './ejercicios';
+import { ACCESS_CODES, CALL_TYPE_CODES, EXERCISE_TYPE_CODES, MODEL_CODES, QUOTA_CODES, SCALE_CODES } from './metadata';
 
 type ValorCelda = string | number | boolean | Date | null | undefined;
 type FilaFuente = Record<string, ValorCelda>;
@@ -135,9 +136,6 @@ function normalizarCodigoMetadato(valor: string): string {
         .trim();
 }
 
-const CODIGOS_ESCALA = new Set(['AUX', 'ADV', 'PSX']);
-const CODIGOS_ACCESO = new Set(['LI', 'PI', 'PC']);
-const CODIGOS_TIPO = new Set(['PRI', 'SEG', 'UNI']);
 const VARIANTES_CONVOCATORIA: Record<string, string> = {
     BIB: 'Bibliotecas',
     BIBLIOTECA: 'Bibliotecas',
@@ -149,17 +147,25 @@ function esTokenAnio(valor: string): boolean {
     return /^(?:\d{2}|\d{4})$/.test(normalizarTextoVisual(valor)) && parsearAnioEjercicio(valor) > 0;
 }
 
-function buscarIndiceCodigo(partes: string[], codigos: Set<string>, desde = 0): number {
+function buscarIndiceCodigo(partes: string[], codigos: ReadonlySet<string>, desde = 0): number {
     return partes.findIndex((parte, indice) => indice >= desde && codigos.has(normalizarCodigoMetadato(parte)));
+}
+
+function normalizarCodigoModelo(valor: string): string {
+    return normalizarCodigoMetadato(valor).replace(/^MODELO\s+/, '');
+}
+
+function buscarIndiceModelo(partes: string[], desde = 0): number {
+    return partes.findIndex((parte, indice) => indice >= desde && MODEL_CODES.has(normalizarCodigoModelo(parte)));
 }
 
 function buscarIndiceEscala(partes: string[], indiceAnio: number): number {
     if (indiceAnio > 0) {
         for (let i = indiceAnio - 1; i >= 0; i -= 1) {
-            if (CODIGOS_ESCALA.has(normalizarCodigoMetadato(partes[i]))) return i;
+            if (SCALE_CODES.has(normalizarCodigoMetadato(partes[i]))) return i;
         }
     }
-    return buscarIndiceCodigo(partes, CODIGOS_ESCALA);
+    return buscarIndiceCodigo(partes, SCALE_CODES);
 }
 
 function parsearMetadatosEjercicio(ejercicio: string): MetadatosEjercicio {
@@ -171,9 +177,15 @@ function parsearMetadatosEjercicio(ejercicio: string): MetadatosEjercicio {
 
     const indiceAnio = partes.findIndex(esTokenAnio);
     const indiceEscala = buscarIndiceEscala(partes, indiceAnio);
-    const indiceAcceso = buscarIndiceCodigo(partes, CODIGOS_ACCESO, Math.max(indiceAnio + 1, 0));
-    const indiceTipo = buscarIndiceCodigo(partes, CODIGOS_TIPO, Math.max(indiceAcceso + 1, 0));
-    const indicesEstructurales = new Set([indiceEscala, indiceAnio, indiceAcceso, indiceTipo].filter(i => i >= 0));
+    const indicePosteriorAnio = Math.max(indiceAnio + 1, 0);
+    const indiceTipoConvocatoria = buscarIndiceCodigo(partes, CALL_TYPE_CODES, indicePosteriorAnio);
+    const indiceAcceso = buscarIndiceCodigo(partes, ACCESS_CODES, indicePosteriorAnio);
+    const indicePosteriorConvocatoria = Math.max(indiceTipoConvocatoria, indiceAcceso, indiceAnio) + 1;
+    const indiceCupo = buscarIndiceCodigo(partes, QUOTA_CODES, indicePosteriorConvocatoria);
+    const indiceTipo = buscarIndiceCodigo(partes, EXERCISE_TYPE_CODES, indicePosteriorConvocatoria);
+    const indiceModeloDesde = Math.max(indiceTipoConvocatoria, indiceAcceso, indiceCupo, indiceTipo, indiceAnio) + 1;
+    const indiceModelo = buscarIndiceModelo(partes, indiceModeloDesde);
+    const indicesEstructurales = new Set([indiceEscala, indiceAnio, indiceTipoConvocatoria, indiceAcceso, indiceCupo, indiceTipo, indiceModelo].filter(i => i >= 0));
     const varianteTokens: string[] = [];
     const organismoTokens: string[] = [];
 
@@ -196,8 +208,6 @@ function parsearMetadatosEjercicio(ejercicio: string): MetadatosEjercicio {
             varianteTokens.push('EXT');
             return;
         }
-
-        varianteTokens.push(parte);
     });
 
     const organismo = indiceEscala >= 0
@@ -208,8 +218,11 @@ function parsearMetadatosEjercicio(ejercicio: string): MetadatosEjercicio {
         organismo,
         escala: indiceEscala >= 0 ? normalizarCodigoMetadato(partes[indiceEscala]) : partes[1] || '',
         año: indiceAnio >= 0 ? parsearAnioEjercicio(partes[indiceAnio]) : 0,
-        acceso: indiceAcceso >= 0 ? normalizarCodigoMetadato(partes[indiceAcceso]) : partes[3] || '',
-        tipo: indiceTipo >= 0 ? normalizarCodigoMetadato(partes[indiceTipo]) : partes[4] || '',
+        tipoConvocatoria: indiceTipoConvocatoria >= 0 ? normalizarCodigoMetadato(partes[indiceTipoConvocatoria]) : '',
+        acceso: indiceAcceso >= 0 ? normalizarCodigoMetadato(partes[indiceAcceso]) : '',
+        cupo: indiceCupo >= 0 ? normalizarCodigoMetadato(partes[indiceCupo]) : '',
+        tipo: indiceTipo >= 0 ? normalizarCodigoMetadato(partes[indiceTipo]) : '',
+        modelo: indiceModelo >= 0 ? normalizarCodigoModelo(partes[indiceModelo]) : '',
         variante: Array.from(new Set(varianteTokens)).join(' '),
         extraordinaria: REGEX_EXTRAORDINARIO.test(texto),
     };
@@ -224,8 +237,11 @@ function sonMetadatosIguales(a: MetadatosEjercicio, b: MetadatosEjercicio): bool
     return a.organismo === b.organismo
         && a.escala === b.escala
         && a.año === b.año
+        && (a.tipoConvocatoria || '') === (b.tipoConvocatoria || '')
         && a.acceso === b.acceso
+        && (a.cupo || '') === (b.cupo || '')
         && a.tipo === b.tipo
+        && (a.modelo || '') === (b.modelo || '')
         && a.variante === b.variante
         && a.extraordinaria === b.extraordinaria;
 }
@@ -239,9 +255,12 @@ export function normalizarDatasetAnalisis(dataset: DatasetAnalisis): DatasetAnal
             organismo: metadatosEjercicio.organismo || pregunta.metadatos.organismo,
             escala: metadatosEjercicio.escala || pregunta.metadatos.escala,
             año: normalizarAnioNumero(pregunta.metadatos.año) || metadatosEjercicio.año,
-            acceso: metadatosEjercicio.acceso || pregunta.metadatos.acceso,
-            tipo: metadatosEjercicio.tipo || pregunta.metadatos.tipo,
-            variante: metadatosEjercicio.variante || pregunta.metadatos.variante,
+            tipoConvocatoria: metadatosEjercicio.tipoConvocatoria,
+            acceso: metadatosEjercicio.acceso,
+            cupo: metadatosEjercicio.cupo,
+            tipo: metadatosEjercicio.tipo,
+            modelo: metadatosEjercicio.modelo,
+            variante: metadatosEjercicio.variante,
             extraordinaria: metadatosEjercicio.extraordinaria || pregunta.metadatos.extraordinaria,
         };
 
@@ -318,8 +337,11 @@ export const procesarCSV = (file: File, idCuestionarioManual?: string): Promise<
                             organismo: metadatosEjercicio.organismo,
                             escala: metadatosEjercicio.escala,
                             año: añoNum,
+                            tipoConvocatoria: metadatosEjercicio.tipoConvocatoria,
                             acceso: metadatosEjercicio.acceso,
+                            cupo: metadatosEjercicio.cupo,
                             tipo: metadatosEjercicio.tipo,
+                            modelo: metadatosEjercicio.modelo,
                             variante: metadatosEjercicio.variante,
                             extraordinaria: metadatosEjercicio.extraordinaria
                         },

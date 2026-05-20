@@ -2,6 +2,7 @@ import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import type { Pregunta } from '../types';
 import { Play, StopCircle, RotateCcw, Clock, CheckCircle2, XCircle, Trophy, ChevronDown } from 'lucide-react';
 import { AnalisisErrores } from './AnalisisErrores';
+import { formatScaleLabel } from '../utils/metadata';
 
 interface ExamenSimuladoProps {
     preguntas: Pregunta[];
@@ -22,7 +23,11 @@ const RevisionRespuestas: React.FC<{ preguntasExamen: Pregunta[]; respuestas: Re
 
     const toggle = (i: number) => setExpandidas(prev => {
         const next = new Set(prev);
-        next.has(i) ? next.delete(i) : next.add(i);
+        if (next.has(i)) {
+            next.delete(i);
+        } else {
+            next.add(i);
+        }
         return next;
     });
 
@@ -402,7 +407,7 @@ export const ExamenSimulado: React.FC<ExamenSimuladoProps> = ({ preguntas }) => 
                             Año: {p.metadatos.año}
                         </span>
                         <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', backgroundColor: 'var(--bg-tertiary)', padding: '4px 8px', borderRadius: '4px' }}>
-                            Escala: {p.metadatos.escala === 'AUX' ? 'Auxiliar administrativo' : p.metadatos.escala === 'ADV' ? 'Administrativo' : p.metadatos.escala === 'PSX' ? 'Personal de Servicios Generales' : p.metadatos.escala}
+                            Escala: {formatScaleLabel(p.metadatos.escala)}
                         </span>
                     </div>
                     <p style={{ fontSize: '15px', color: 'var(--text-primary)', lineHeight: 1.8, marginBottom: '20px' }}>

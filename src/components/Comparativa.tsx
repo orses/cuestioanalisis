@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import type { Pregunta } from '../types';
 import { generarComparativa } from '../utils/analytics';
 import { GitCompare, Check } from 'lucide-react';
@@ -11,11 +11,14 @@ interface ComparativaProps {
     preguntas: Pregunta[];
 }
 
+type AgrupacionComparativa = 'materias' | 'bloques' | 'temas' | 'programas';
+type ChartRow = Record<string, string | number> & { name: string; _total: number };
+
 export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
     const datos = useMemo(() => generarComparativa(preguntas), [preguntas]);
     const [seleccionados, setSeleccionados] = useState<string[]>([]);
     const [vistaRadar, setVistaRadar] = useState(false);
-    const [radarAgrupacion, setRadarAgrupacion] = useState<'materias' | 'bloques' | 'temas' | 'programas'>('materias');
+    const [radarAgrupacion, setRadarAgrupacion] = useState<AgrupacionComparativa>('materias');
 
     const toggleSeleccion = (ej: string) => {
         setSeleccionados(prev =>
@@ -59,9 +62,9 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
     const COLORES_CONVO = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'];
 
     // Funciones para generar la data plana que Reactharts necesita
-    const formatData = (itemSet: string[], type: 'materias' | 'bloques' | 'temas' | 'programas') => {
+    const formatData = useCallback((itemSet: string[], type: AgrupacionComparativa): ChartRow[] => {
         return itemSet.map(item => {
-            const row: any = { name: item, _total: 0 };
+            const row: ChartRow = { name: item, _total: 0 };
             datosSeleccionados.forEach(d => {
                 const val = d[type][item] || 0;
                 row[d.ejercicio] = val;
@@ -69,15 +72,15 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
             });
             return row;
         }).sort((a, b) => b._total - a._total); // Orden descendente por sumatorio total
-    };
+    }, [datosSeleccionados]);
 
-    const dataMaterias = useMemo(() => formatData(todasMaterias, 'materias'), [todasMaterias, datosSeleccionados]);
-    const dataBloques = useMemo(() => formatData(todosBloques, 'bloques'), [todosBloques, datosSeleccionados]);
-    const dataTemas = useMemo(() => formatData(todosTemas, 'temas'), [todosTemas, datosSeleccionados]);
-    const dataProgramas = useMemo(() => formatData(todosProgramas, 'programas'), [todosProgramas, datosSeleccionados]);
+    const dataMaterias = useMemo(() => formatData(todasMaterias, 'materias'), [todasMaterias, formatData]);
+    const dataBloques = useMemo(() => formatData(todosBloques, 'bloques'), [todosBloques, formatData]);
+    const dataTemas = useMemo(() => formatData(todosTemas, 'temas'), [todosTemas, formatData]);
+    const dataProgramas = useMemo(() => formatData(todosProgramas, 'programas'), [todosProgramas, formatData]);
 
     // Renderizador genérico de gráfico de barras agrupado (Layout Horizontal)
-    const renderChart = (title: string, data: any[]) => {
+    const renderChart = (title: string, data: ChartRow[]) => {
         if (!data || data.length === 0) return null;
 
         // Calcular altura dinámica base en la cantidad de elementos (mínimo 300px)
@@ -132,7 +135,7 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
                                         fill="var(--text-primary)"
                                         fontSize={11}
                                         fontWeight={600}
-                                        formatter={(val: any) => (typeof val === 'number' && val > 0) ? val : ''}
+                                        formatter={(val: unknown) => (typeof val === 'number' && val > 0) ? val : ''}
                                     />
                                 </Bar>
                             ))}
@@ -368,10 +371,11 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
                                         radarAgrupacion === 'temas' ? dataTemas :
                                         dataProgramas
                                     ).map(d => {
-                                        const row: any = { name: d.name };
+                                        const row: Record<string, string | number> = { name: d.name };
                                         datosSeleccionados.forEach(ds => {
                                             const total = ds.totalPreguntas || 1;
-                                            row[ds.ejercicio] = Math.round(((d[ds.ejercicio] as number) || 0) / total * 100);
+                                            const valor = d[ds.ejercicio];
+                                            row[ds.ejercicio] = Math.round(((typeof valor === 'number' ? valor : 0) / total) * 100);
                                         });
                                         return row;
                                     })}>

@@ -31,14 +31,15 @@ import { VocabularioEmergente } from '../VocabularioEmergente';
 // Renderiza cuando entra en el viewport O cuando forceVisible es true.
 const LazySection: React.FC<{ children: React.ReactNode; fallbackHeight?: number; forceVisible?: boolean }> = ({ children, fallbackHeight = 200, forceVisible = false }) => {
     const ref = useRef<HTMLDivElement>(null);
-    const [visible, setVisible] = useState(false);
+    const [visiblePorInterseccion, setVisiblePorInterseccion] = useState(false);
+    const visible = forceVisible || visiblePorInterseccion;
 
     useEffect(() => {
-        if (forceVisible) { setVisible(true); return; }
+        if (forceVisible) return;
         const el = ref.current;
         if (!el) return;
         const observer = new IntersectionObserver(
-            ([entry]) => { if (entry.isIntersecting) { setVisible(true); observer.disconnect(); } },
+            ([entry]) => { if (entry.isIntersecting) { setVisiblePorInterseccion(true); observer.disconnect(); } },
             { rootMargin: '400px 0px' }
         );
         observer.observe(el);

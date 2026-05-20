@@ -61,7 +61,12 @@ export const ModalPregunta: React.FC<ModalPreguntaProps> = ({
                     {/* Flecha izquierda — pegada al borde izquierdo del modal */}
                     {hasNav && (
                         <button
-                            onClick={e => { e.stopPropagation(); prevId && onNavegar!(prevId); }}
+                            onClick={e => {
+                                e.stopPropagation();
+                                if (prevId && onNavegar) {
+                                    onNavegar(prevId);
+                                }
+                            }}
                             disabled={!prevId}
                             title="Anterior (←)"
                             className="absolute top-1/2 -translate-y-1/2 pointer-events-auto flex items-center justify-center rounded-full shadow-2xl transition-opacity disabled:opacity-20 disabled:cursor-not-allowed"
@@ -79,7 +84,12 @@ export const ModalPregunta: React.FC<ModalPreguntaProps> = ({
                     {/* Flecha derecha — pegada al borde derecho del modal */}
                     {hasNav && (
                         <button
-                            onClick={e => { e.stopPropagation(); nextId && onNavegar!(nextId); }}
+                            onClick={e => {
+                                e.stopPropagation();
+                                if (nextId && onNavegar) {
+                                    onNavegar(nextId);
+                                }
+                            }}
                             disabled={!nextId}
                             title="Siguiente (→)"
                             className="absolute top-1/2 -translate-y-1/2 pointer-events-auto flex items-center justify-center rounded-full shadow-2xl transition-opacity disabled:opacity-20 disabled:cursor-not-allowed"

@@ -1,9 +1,18 @@
 import React, { useMemo, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import type { NameType, Payload, ValueType } from 'recharts/types/component/DefaultTooltipContent';
 import type { Pregunta } from '../types';
 
 interface Props {
     preguntas: Pregunta[];
+}
+
+type PuntoTendencia = Record<string, string | number> & { name: string };
+
+function esPayloadLeyenda(value: unknown): value is { dataKey: string } {
+    return typeof value === 'object'
+        && value !== null
+        && typeof (value as { dataKey?: unknown }).dataKey === 'string';
 }
 
 export const TendenciasHistoricas: React.FC<Props> = ({ preguntas }) => {
@@ -65,7 +74,7 @@ export const TendenciasHistoricas: React.FC<Props> = ({ preguntas }) => {
                 conteoLocal.set(m, (conteoLocal.get(m) || 0) + 1);
             });
 
-            const punto: Record<string, any> = { name: ano };
+            const punto: PuntoTendencia = { name: ano };
             top5.forEach(mat => {
                 const cant = conteoLocal.get(mat) || 0;
                 punto[mat] = parseFloat(((cant / total) * 100).toFixed(1));
@@ -146,15 +155,19 @@ export const TendenciasHistoricas: React.FC<Props> = ({ preguntas }) => {
                             }}
                             itemStyle={{ fontSize: '13px' }}
                             labelStyle={{ fontWeight: 800, marginBottom: '4px', color: 'var(--text-primary)' }}
-                            formatter={(value: any, name: any, props: any) => {
-                                const absValue = props.payload[`${name}_abs`];
-                                return [`${value}% (${absValue} pregs.)`, name];
+                            formatter={(value: ValueType | undefined, name: NameType | undefined, props: Payload<ValueType, NameType>) => {
+                                const absValue = name !== undefined ? props.payload?.[`${name}_abs`] : undefined;
+                                return [`${String(value ?? '')}% (${absValue ?? 0} pregs.)`, name ?? ''];
                             }}
                         />
                         <Legend
                             wrapperStyle={{ fontSize: '13px', paddingTop: '20px', cursor: 'pointer' }}
                             iconType="circle"
-                            onClick={(e: any) => { if (e && e.dataKey) toggleLine(e.dataKey); }}
+                            onClick={(e: unknown) => {
+                                if (esPayloadLeyenda(e)) {
+                                    toggleLine(e.dataKey);
+                                }
+                            }}
                         />
                         {lineas.map((materia, i) => (
                             <Line

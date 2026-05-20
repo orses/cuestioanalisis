@@ -17,8 +17,11 @@ export interface MetadatosEjercicio {
     organismo: string;
     escala: string;
     año: number;
+    tipoConvocatoria: string;
     acceso: string;
+    cupo: string;
     tipo: string;
+    modelo: string;
     variante: string;
     extraordinaria: boolean;
 }

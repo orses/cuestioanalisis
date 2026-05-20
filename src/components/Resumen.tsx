@@ -5,6 +5,7 @@ import { InfoTooltip } from './InfoTooltip';
 import { ListaPopover, type ListaPopoverItem } from './ListaPopover';
 import { getMateriaColor as getColorMateria } from '../utils/colores';
 import { obtenerClaveEjercicioCuestionario } from '../utils/ejercicios';
+import { formatAccessLabel, formatCallTypeLabel, formatExerciseTypeLabel, formatModelLabel, formatQuotaLabel, formatScaleLabel } from '../utils/metadata';
 
 export interface FiltroTabla {
     materias?: string[];
@@ -63,24 +64,12 @@ export const Resumen: React.FC<ResumenProps> = ({ preguntas, onVerEjercicio, onF
     const totalAnuladas = useMemo(() => preguntas.filter(p => p.anulada).length, [preguntas]);
 
     // ——— Distribución por ejercicio (tabla con metadatos) ———
-    type EjCol = 'cuestionario' | 'organismo' | 'escala' | 'año' | 'acceso' | 'tipo' | 'count' | 'porcentaje' | 'anuladas';
+    type EjCol = 'cuestionario' | 'organismo' | 'escala' | 'año' | 'tipoConvocatoria' | 'acceso' | 'cupo' | 'tipo' | 'modelo' | 'count' | 'porcentaje' | 'anuladas';
     const [ejSortCol, setEjSortCol] = useState<EjCol>('organismo');
     const [ejSortAsc, setEjSortAsc] = useState(true);
 
-    const formatearVariante = (variante: string) => variante
-        .replace(/\bEXT\b/g, 'Extraordinario')
-        .replace(/_/g, ' ')
-        .trim();
-
-    const formatearEscala = (escala: string, variante: string) => {
-        const base = ({ AUX: 'Auxiliar', ADV: 'Administrativo', PSX: 'Servicios Grales.' } as Record<string, string>)[escala] || escala || '—';
-        const detalle = formatearVariante(variante);
-        if (!detalle || detalle.toLowerCase() === 'extraordinario') return base;
-        return `${base} (${detalle.toLowerCase()})`;
-    };
-
     const ejerciciosBase = useMemo(() => {
-        const conteo: Record<string, { count: number; cuestionario: string; organismo: string; escala: string; año: number; acceso: string; tipo: string; variante: string; anuladas: number }> = {};
+        const conteo: Record<string, { count: number; cuestionario: string; organismo: string; escala: string; año: number; tipoConvocatoria: string; acceso: string; cupo: string; tipo: string; modelo: string; variante: string; anuladas: number }> = {};
         preguntas.forEach(p => {
             const ej = obtenerClaveEjercicioCuestionario(p);
             if (!conteo[ej]) {
@@ -90,8 +79,11 @@ export const Resumen: React.FC<ResumenProps> = ({ preguntas, onVerEjercicio, onF
                     organismo: p.metadatos.organismo,
                     escala: p.metadatos.escala,
                     año: p.metadatos.año,
+                    tipoConvocatoria: p.metadatos.tipoConvocatoria || '',
                     acceso: p.metadatos.acceso,
+                    cupo: p.metadatos.cupo || '',
                     tipo: p.metadatos.tipo,
+                    modelo: p.metadatos.modelo || '',
                     variante: p.metadatos.variante,
                     anuladas: 0,
                 };
@@ -121,10 +113,16 @@ export const Resumen: React.FC<ResumenProps> = ({ preguntas, onVerEjercicio, onF
                 if (d2 !== 0) return d2;
                 const d3 = (a.año - b.año) * dir;
                 if (d3 !== 0) return d3;
-                const d4 = a.acceso.localeCompare(b.acceso) * dir;
+                const d4 = a.tipoConvocatoria.localeCompare(b.tipoConvocatoria) * dir;
                 if (d4 !== 0) return d4;
-                const d5 = a.tipo.localeCompare(b.tipo) * dir;
+                const d5 = a.acceso.localeCompare(b.acceso) * dir;
                 if (d5 !== 0) return d5;
+                const d6 = a.cupo.localeCompare(b.cupo) * dir;
+                if (d6 !== 0) return d6;
+                const d7 = a.tipo.localeCompare(b.tipo) * dir;
+                if (d7 !== 0) return d7;
+                const d8 = a.modelo.localeCompare(b.modelo) * dir;
+                if (d8 !== 0) return d8;
                 return a.cuestionario.localeCompare(b.cuestionario) * dir;
             });
         }
@@ -494,7 +492,7 @@ export const Resumen: React.FC<ResumenProps> = ({ preguntas, onVerEjercicio, onF
                             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                                 <thead>
                                     <tr style={{ borderBottom: '2px solid var(--border-secondary)' }}>
-                                        {([['Cuest.', 'cuestionario'], ['Organismo', 'organismo'], ['Escala', 'escala'], ['Año', 'año'], ['Acceso', 'acceso'], ['Ejercicio', 'tipo'], ['Preguntas', 'count'], ['%', 'porcentaje'], ['Anuladas', 'anuladas']] as [string, EjCol][]).map(([label, col]) => (
+                                        {([['Cuest.', 'cuestionario'], ['Organismo', 'organismo'], ['Escala', 'escala'], ['Año', 'año'], ['Tipo conv.', 'tipoConvocatoria'], ['Acceso', 'acceso'], ['Cupo', 'cupo'], ['Ejercicio', 'tipo'], ['Modelo', 'modelo'], ['Preguntas', 'count'], ['%', 'porcentaje'], ['Anuladas', 'anuladas']] as [string, EjCol][]).map(([label, col]) => (
                                             <th key={col}
                                                 onClick={() => toggleEjSort(col)}
                                                 style={{
@@ -525,14 +523,23 @@ export const Resumen: React.FC<ResumenProps> = ({ preguntas, onVerEjercicio, onF
                                             <td style={{ padding: '5px 10px', fontFamily: 'monospace', fontWeight: 700, color: 'var(--accent-primary)' }}>{d.cuestionario || '—'}</td>
                                             <td style={{ padding: '5px 10px', fontWeight: 600, color: 'var(--text-primary)' }}>{d.organismo || '—'}</td>
                                             <td style={{ padding: '5px 10px', color: 'var(--text-primary)' }}>
-                                                {formatearEscala(d.escala, d.variante)}
+                                                {formatScaleLabel(d.escala, 'short')}
                                             </td>
                                             <td style={{ padding: '5px 10px', fontWeight: 700, color: 'var(--text-primary)' }}>{d.año > 0 ? d.año : '—'}</td>
                                             <td style={{ padding: '5px 10px', color: 'var(--text-primary)' }}>
-                                                {({ LI: 'Libre', PI: 'Prom. int.', PC: 'Prom. cruz.' } as Record<string, string>)[d.acceso] || d.acceso || '—'}
+                                                {formatCallTypeLabel(d.tipoConvocatoria, 'short')}
                                             </td>
                                             <td style={{ padding: '5px 10px', color: 'var(--text-primary)' }}>
-                                                {({ PRI: 'Primero', SEG: 'Segundo', UNI: 'Único' } as Record<string, string>)[d.tipo] || d.tipo || '—'}
+                                                {formatAccessLabel(d.acceso, 'short')}
+                                            </td>
+                                            <td style={{ padding: '5px 10px', color: 'var(--text-primary)' }}>
+                                                {formatQuotaLabel(d.cupo)}
+                                            </td>
+                                            <td style={{ padding: '5px 10px', color: 'var(--text-primary)' }}>
+                                                {formatExerciseTypeLabel(d.tipo)}
+                                            </td>
+                                            <td style={{ padding: '5px 10px', color: 'var(--text-primary)' }}>
+                                                {formatModelLabel(d.modelo)}
                                             </td>
                                             <td style={{ padding: '5px 10px', textAlign: 'right', fontWeight: 700, color: 'var(--text-primary)' }}>{d.count}</td>
                                             <td style={{ padding: '5px 10px', textAlign: 'right', color: 'var(--text-tertiary)', fontSize: '12px' }}>{d.porcentaje}%</td>

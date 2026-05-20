@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef } from 'react';
+import React, { useMemo, useState } from 'react';
 import type { Pregunta } from '../types';
 import { construirGrafoCoocurrencia } from '../utils/analytics';
 import { Network } from 'lucide-react';
@@ -30,9 +30,6 @@ export const GrafoCoocurrenciaViz: React.FC<GrafoCoocurrenciaProps> = ({ pregunt
     // Dimensiones del SVG
     const WIDTH = 700;
     const HEIGHT = 450;
-
-    // Layout force-directed
-    const nodosPosRef = useRef<NodoPosicion[]>([]);
 
     const nodos = useMemo(() => {
         // Inicializar posiciones en un círculo
@@ -109,7 +106,6 @@ export const GrafoCoocurrenciaViz: React.FC<GrafoCoocurrenciaProps> = ({ pregunt
             }
         }
 
-        nodosPosRef.current = result;
         return result;
     }, [grafo, WIDTH, HEIGHT]);
 
