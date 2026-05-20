@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Upload, Sun, Moon, FileSpreadsheet, ChevronUp } from 'lucide-react';
-import { procesarCSV, parsearCatalogo, csvTieneIdCuestionario, normalizarCatalogo } from './utils/parser';
+import { procesarCSV, parsearCatalogo, csvTieneIdCuestionario, normalizarCatalogo, normalizarDatasetAnalisis } from './utils/parser';
 import type { DatasetAnalisis, Pregunta, CuestionarioMeta } from './types';
 import { useFiltros } from './hooks/useFiltros';
 import { useFiltrosCatalogo } from './hooks/useFiltrosCatalogo';
@@ -158,12 +158,12 @@ function App() {
         todasPreguntas.reduce((m, p) => m.set(`${p.id_cuestionario}::${p.id}`, p), new Map<string, (typeof todasPreguntas)[0]>()).values()
       );
 
-      const nuevoDataset: DatasetAnalisis = {
+      const nuevoDataset: DatasetAnalisis = normalizarDatasetAnalisis({
         preguntas: preguntasDedup,
         conceptos_globales: dataset ? [...dataset.conceptos_globales, ...nuevosConceptos] : nuevosConceptos,
         ejercicios_unicos: Array.from(new Set([...(dataset?.ejercicios_unicos || []), ...nuevosEjercicios])),
         cuestionarios_cargados: Array.from(new Set([...(dataset?.cuestionarios_cargados || []), ...nuevosCuestionarios])),
-      };
+      });
 
       setDataset(nuevoDataset);
       setNombresArchivos(prev => [...prev, ...nombres]);
@@ -201,8 +201,12 @@ function App() {
   useEffect(() => {
     recuperarDataset().then(result => {
       if (result && !dataset) {
-        setDataset(result.data);
+        const datasetNormalizado = normalizarDatasetAnalisis(result.data);
+        setDataset(datasetNormalizado);
         setNombresArchivos(result.nombreArchivos);
+        if (datasetNormalizado !== result.data) {
+          guardarDataset(datasetNormalizado, result.nombreArchivos).catch(() => { });
+        }
       }
     }).catch(() => { });
     recuperarCatalogo().then(cat => {

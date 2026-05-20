@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Filter, X, ChevronDown } from 'lucide-react';
+import { Filter, X, ChevronDown, Search } from 'lucide-react';
 import { MultiSelect } from '../MultiSelect';
 
 interface BarraFiltrosProps {
@@ -112,71 +112,100 @@ export const BarraFiltros: React.FC<BarraFiltrosProps> = ({
         ...(state.busqueda ? [{ key: 'busqueda', label: 'Búsqueda', valor: state.busqueda, onQuitar: () => setBusqueda('') }] : []),
     ];
 
+    const renderChipsActivos = () => chipsActivos.length > 0 && (
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5" aria-label="Filtros activos">
+            {chipsActivos.map(c => (
+                <span
+                    key={c.key}
+                    className="inline-flex items-center gap-1 text-xs font-medium rounded-full pl-2.5 pr-1 py-0.5 border"
+                    style={{
+                        backgroundColor: 'var(--bg-tertiary)',
+                        borderColor: 'var(--border-secondary)',
+                        color: 'var(--text-primary)',
+                    }}
+                >
+                    <span className="text-muted">{c.label}:</span>
+                    <span className="font-semibold truncate" style={{ maxWidth: '200px' }} title={c.valor}>{c.valor}</span>
+                    <button
+                        onClick={c.onQuitar}
+                        className="ml-0.5 p-0.5 rounded-full hover:bg-muted transition-colors"
+                        aria-label={`Quitar filtro ${c.label}: ${c.valor}`}
+                        title={`Quitar ${c.label}: ${c.valor}`}
+                    >
+                        <X className="w-3 h-3" />
+                    </button>
+                </span>
+            ))}
+        </div>
+    );
+
     return (
         <div className="bg-card border-b" style={{ borderColor: 'var(--border-secondary)' }}>
             <div className="max-w-[1800px] mx-auto px-4 py-3">
-                <div className="flex items-center gap-2 mb-1">
-                    <button
-                        onClick={handleToggleColapso}
-                        className="flex items-center gap-2 text-sm font-medium text-body hover:text-heading transition-colors"
-                        aria-expanded={!colapsado}
-                        aria-controls="filtros-panel"
-                    >
-                        <Filter className="w-4 h-4 text-muted" />
-                        <span>Filtros</span>
-                        <ChevronDown
-                            className="w-3.5 h-3.5 text-muted transition-transform duration-200"
-                            style={{ transform: colapsado ? 'rotate(-90deg)' : 'rotate(0deg)' }}
-                        />
-                    </button>
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{
-                        backgroundColor: hayFiltrosActivos ? 'var(--accent-primary)' : 'var(--bg-tertiary)',
-                        color: hayFiltrosActivos ? '#fff' : 'var(--text-tertiary)',
-                    }}>
-                        {totalFiltradas} / {totalDataset} preguntas
-                    </span>
-                    {colapsado && numFiltrosActivos > 0 && (
-                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{
-                            backgroundColor: 'var(--accent-warning)',
-                            color: '#fff',
-                        }}>
-                            {numFiltrosActivos} activo{numFiltrosActivos > 1 ? 's' : ''}
-                        </span>
-                    )}
-                    {hayFiltrosActivos && (
-                        <button onClick={handleLimpiarTodo} className="text-xs font-medium flex items-center gap-1 ml-2 hover:underline" style={{ color: 'var(--accent-primary)' }}>
-                            <X className="w-3 h-3" /> Limpiar filtros
+                <div className="flex flex-col gap-2 xl:flex-row xl:items-start xl:justify-between">
+                    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                        <button
+                            onClick={handleToggleColapso}
+                            className="flex items-center gap-2 text-sm font-medium text-body hover:text-heading transition-colors"
+                            aria-expanded={!colapsado}
+                            aria-controls="filtros-panel"
+                        >
+                            <Filter className="w-4 h-4 text-muted" />
+                            <span>Filtros</span>
+                            <ChevronDown
+                                className="w-3.5 h-3.5 text-muted transition-transform duration-200"
+                                style={{ transform: colapsado ? 'rotate(-90deg)' : 'rotate(0deg)' }}
+                            />
                         </button>
-                    )}
-                </div>
-
-                {/* ———— Chips de filtros activos (siempre visibles, incluso con el panel colapsado) ———— */}
-                {chipsActivos.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mt-2 mb-1" aria-label="Filtros activos">
-                        {chipsActivos.map(c => (
-                            <span
-                                key={c.key}
-                                className="inline-flex items-center gap-1 text-xs font-medium rounded-full pl-2.5 pr-1 py-0.5 border"
-                                style={{
-                                    backgroundColor: 'var(--bg-tertiary)',
-                                    borderColor: 'var(--border-secondary)',
-                                    color: 'var(--text-primary)',
-                                }}
-                            >
-                                <span className="text-muted">{c.label}:</span>
-                                <span className="font-semibold truncate" style={{ maxWidth: '200px' }} title={c.valor}>{c.valor}</span>
-                                <button
-                                    onClick={c.onQuitar}
-                                    className="ml-0.5 p-0.5 rounded-full hover:bg-muted transition-colors"
-                                    aria-label={`Quitar filtro ${c.label}: ${c.valor}`}
-                                    title={`Quitar ${c.label}: ${c.valor}`}
-                                >
-                                    <X className="w-3 h-3" />
-                                </button>
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{
+                            backgroundColor: hayFiltrosActivos ? 'var(--accent-primary)' : 'var(--bg-tertiary)',
+                            color: hayFiltrosActivos ? '#fff' : 'var(--text-tertiary)',
+                        }}>
+                            {totalFiltradas} / {totalDataset} preguntas
+                        </span>
+                        {colapsado && numFiltrosActivos > 0 && (
+                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{
+                                backgroundColor: 'var(--accent-warning)',
+                                color: '#fff',
+                            }}>
+                                {numFiltrosActivos} activo{numFiltrosActivos > 1 ? 's' : ''}
                             </span>
-                        ))}
+                        )}
+                        {hayFiltrosActivos && (
+                            <button
+                                onClick={handleLimpiarTodo}
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border transition-colors hover:bg-muted"
+                                style={{ borderColor: 'var(--accent-primary)', color: 'var(--accent-primary)', backgroundColor: 'var(--bg-secondary)' }}
+                            >
+                                <X className="w-3.5 h-3.5" /> Limpiar filtros
+                            </button>
+                        )}
+                        {renderChipsActivos()}
                     </div>
-                )}
+                    <div className="relative w-full xl:w-[420px] xl:flex-shrink-0">
+                        <Search className="absolute left-3 top-1/2 w-4 h-4 -translate-y-1/2 text-muted pointer-events-none" />
+                        <input
+                            id="f-busqueda"
+                            type="text"
+                            placeholder="Buscar en preguntas"
+                            value={state.busqueda}
+                            onChange={e => setBusqueda(e.target.value)}
+                            aria-label="Buscar en preguntas"
+                            title='Admite lógica: "rey Y constitución", "rey O alcalde", "rey -reina"'
+                            className="w-full pl-9 pr-8 py-2 text-sm border rounded-lg bg-card text-body focus:ring-2"
+                            style={{ borderColor: 'var(--border-primary)' }}
+                        />
+                        {state.busqueda && (
+                            <button
+                                onClick={() => setBusqueda('')}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted hover:text-heading transition-colors"
+                                aria-label="Limpiar búsqueda"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        )}
+                    </div>
+                </div>
 
                 <div
                     id="filtros-panel"
@@ -210,25 +239,6 @@ export const BarraFiltros: React.FC<BarraFiltrosProps> = ({
                         {disponibles.cuestionarios.length > 0 && (
                             <MultiSelect id="f-cuestionario" label="Cuestionario" opciones={disponibles.cuestionarios} seleccionadas={state.cuestionarios} onChange={setCuestionarios} formatLabel={v => v} />
                         )}
-                        {/* Búsqueda */}
-                        <div className="col-span-2">
-                            <label htmlFor="f-busqueda" className="block text-xs font-medium text-muted mb-1">Buscar</label>
-                            <div className="relative">
-                                <input id="f-busqueda" type="text" placeholder='Lógica: "rey Y constitución", "rey O alcalde", "rey -reina"'
-                                    value={state.busqueda} onChange={e => setBusqueda(e.target.value)}
-                                    className="w-full pl-3 pr-8 py-2 text-sm border rounded-lg bg-card text-body focus:ring-2" style={{ borderColor: 'var(--border-primary)' }}
-                                />
-                                {state.busqueda && (
-                                    <button
-                                        onClick={() => setBusqueda('')}
-                                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted hover:text-heading transition-colors"
-                                        aria-label="Limpiar búsqueda"
-                                    >
-                                        <X className="w-4 h-4" />
-                                    </button>
-                                )}
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>

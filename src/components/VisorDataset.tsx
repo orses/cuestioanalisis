@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useCallback } from 'react';
 import type { Pregunta } from '../types';
 import { obtenerEtiquetaEjercicioCuestionario } from '../utils/ejercicios';
-import { ChevronRight, ChevronLeft, Database, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Database, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 
 interface VisorDatasetProps {
     preguntas: Pregunta[];
@@ -9,19 +9,48 @@ interface VisorDatasetProps {
 }
 
 type SortConfig = { key: string; direction: 'asc' | 'desc' } | null;
+type ColumnDef = { key: string; label: string };
 
-const INITIAL_WIDTHS: Record<string, number> = {
-    // Reducida
-    id: 180, num: 50, materia: 110, bloque: 140, tema: 140, aplicacion: 130,
-    enunciado: 320, A: 200, B: 200, C: 200, D: 200, correcta: 55, anulada: 55,
-    // Cruda
-    id_crudo: 220, num_crudo: 60, org: 100, escala: 140, año: 60, acceso: 80, tipo: 80, variante: 80, extra: 90,
-    materia_cruda: 110, bloque_crudo: 140, tema_crudo: 140, aplicacion_cruda: 130,
-    enunciado_crudo: 320, A_cruda: 200, B_cruda: 200, C_cruda: 200, D_cruda: 200,
-    correcta_cruda: 70, anulada_cruda: 70, observaciones: 200, conceptos: 200, distractores: 200
+const WIDTH_RULES: Record<string, { min: number; max: number; fallback: number }> = {
+    id: { min: 210, max: 340, fallback: 260 },
+    num: { min: 54, max: 64, fallback: 56 },
+    materia: { min: 110, max: 150, fallback: 120 },
+    bloque: { min: 96, max: 190, fallback: 130 },
+    tema: { min: 84, max: 180, fallback: 120 },
+    aplicacion: { min: 96, max: 180, fallback: 125 },
+    enunciado: { min: 280, max: 460, fallback: 340 },
+    A: { min: 160, max: 320, fallback: 220 },
+    B: { min: 160, max: 320, fallback: 220 },
+    C: { min: 160, max: 320, fallback: 220 },
+    D: { min: 160, max: 320, fallback: 220 },
+    correcta: { min: 60, max: 72, fallback: 64 },
+    anulada: { min: 62, max: 76, fallback: 66 },
+    id_crudo: { min: 210, max: 320, fallback: 240 },
+    num_crudo: { min: 70, max: 82, fallback: 74 },
+    org: { min: 78, max: 150, fallback: 100 },
+    escala: { min: 70, max: 120, fallback: 84 },
+    año: { min: 58, max: 70, fallback: 62 },
+    acceso: { min: 70, max: 100, fallback: 80 },
+    tipo: { min: 64, max: 96, fallback: 74 },
+    variante: { min: 82, max: 160, fallback: 100 },
+    extra: { min: 96, max: 120, fallback: 104 },
+    materia_cruda: { min: 100, max: 150, fallback: 115 },
+    bloque_crudo: { min: 96, max: 190, fallback: 130 },
+    tema_crudo: { min: 84, max: 180, fallback: 120 },
+    aplicacion_cruda: { min: 96, max: 180, fallback: 125 },
+    enunciado_crudo: { min: 280, max: 460, fallback: 340 },
+    A_cruda: { min: 160, max: 320, fallback: 220 },
+    B_cruda: { min: 160, max: 320, fallback: 220 },
+    C_cruda: { min: 160, max: 320, fallback: 220 },
+    D_cruda: { min: 160, max: 320, fallback: 220 },
+    correcta_cruda: { min: 78, max: 96, fallback: 84 },
+    anulada_cruda: { min: 78, max: 96, fallback: 84 },
+    observaciones: { min: 140, max: 300, fallback: 190 },
+    conceptos: { min: 140, max: 280, fallback: 190 },
+    distractores: { min: 160, max: 320, fallback: 220 },
 };
 
-const COLUMNS_REDUCIDA = [
+const COLUMNS_REDUCIDA: ColumnDef[] = [
     { key: 'id', label: 'Ejercicio' },
     { key: 'num', label: 'N.º' },
     { key: 'materia', label: 'Materia' },
@@ -37,7 +66,7 @@ const COLUMNS_REDUCIDA = [
     { key: 'anulada', label: 'Anul.' },
 ];
 
-const COLUMNS_CRUDA = [
+const COLUMNS_CRUDA: ColumnDef[] = [
     { key: 'id_crudo', label: 'ID' },
     { key: 'num_crudo', label: 'Nº Orig.' },
     { key: 'org', label: 'Organismo' },
@@ -63,14 +92,82 @@ const COLUMNS_CRUDA = [
     { key: 'distractores', label: 'Distractores' },
 ];
 
+function limitarAncho(valor: number, minimo: number, maximo: number): number {
+    return Math.min(maximo, Math.max(minimo, Math.round(valor)));
+}
+
+function medirTexto(texto: string): number {
+    const normalizado = texto.replace(/\s+/g, ' ').trim();
+    if (!normalizado) return 0;
+    return Math.min(normalizado.length, 72) * 6.5 + 28;
+}
+
+function obtenerTextoCelda(p: Pregunta, key: string): string {
+    switch (key) {
+        case 'id': return obtenerEtiquetaEjercicioCuestionario(p);
+        case 'num': return String(p.numero_original);
+        case 'materia': return p.materia?.toString() ?? '';
+        case 'bloque': return p.bloque ?? '';
+        case 'tema': return p.tema ?? '';
+        case 'aplicacion': return p.aplicacion ?? '';
+        case 'enunciado': return p.enunciado ?? '';
+        case 'A': return p.opciones.A ?? '';
+        case 'B': return p.opciones.B ?? '';
+        case 'C': return p.opciones.C ?? '';
+        case 'D': return p.opciones.D ?? '';
+        case 'correcta': return p.correcta ?? '';
+        case 'anulada': return p.anulada ? 'Sí' : '';
+        case 'id_crudo': return p.id;
+        case 'num_crudo': return String(p.numero_original);
+        case 'org': return p.metadatos.organismo ?? '';
+        case 'escala': return p.metadatos.escala ?? '';
+        case 'año': return String(p.metadatos.año ?? '');
+        case 'acceso': return p.metadatos.acceso ?? '';
+        case 'tipo': return p.metadatos.tipo ?? '';
+        case 'variante': return p.metadatos.variante ?? '';
+        case 'extra': return p.metadatos.extraordinaria ? 'true' : 'false';
+        case 'materia_cruda': return p.materia?.toString() ?? '';
+        case 'bloque_crudo': return p.bloque ?? '';
+        case 'tema_crudo': return p.tema ?? '';
+        case 'aplicacion_cruda': return p.aplicacion ?? '';
+        case 'enunciado_crudo': return p.enunciado ?? '';
+        case 'A_cruda': return p.opciones.A ?? '';
+        case 'B_cruda': return p.opciones.B ?? '';
+        case 'C_cruda': return p.opciones.C ?? '';
+        case 'D_cruda': return p.opciones.D ?? '';
+        case 'correcta_cruda': return p.correcta ?? '';
+        case 'anulada_cruda': return p.anulada ? 'true' : 'false';
+        case 'observaciones': return p.observaciones ?? '';
+        case 'conceptos': return p.conceptos_clave?.join(', ') ?? '';
+        case 'distractores': return p.distractores?.map(d => d.texto_opcion).join(', ') ?? '';
+        default: return '';
+    }
+}
+
+function calcularAnchosAutomaticos(columnas: ColumnDef[], preguntas: Pregunta[]): Record<string, number> {
+    const muestra = preguntas.slice(0, 300);
+    return Object.fromEntries(columnas.map(col => {
+        const regla = WIDTH_RULES[col.key] ?? { min: 70, max: 240, fallback: 120 };
+        const anchoCabecera = medirTexto(col.label) + 16;
+        const anchoContenido = muestra.reduce(
+            (maximo, pregunta) => Math.max(maximo, medirTexto(obtenerTextoCelda(pregunta, col.key))),
+            0
+        );
+        const ancho = anchoContenido > 0 ? Math.max(anchoCabecera, anchoContenido) : regla.fallback;
+        return [col.key, limitarAncho(ancho, regla.min, regla.max)];
+    }));
+}
+
 export const VisorDataset: React.FC<VisorDatasetProps> = ({ preguntas, onVerPregunta }) => {
     const [vistaModo, setVistaModo] = useState<'reducida' | 'cruda'>('reducida');
-    const [pagina, setPagina] = useState(1);
     const [sortConfig, setSortConfig] = useState<SortConfig>(null);
-    const [colWidths, setColWidths] = useState<Record<string, number>>({ ...INITIAL_WIDTHS });
-    const preguntasPorPagina = 50;
+    const [manualColWidths, setManualColWidths] = useState<Record<string, number>>({});
 
-    const COLUMNS = vistaModo === 'reducida' ? COLUMNS_REDUCIDA : COLUMNS_CRUDA;
+    const COLUMNS = useMemo(() => vistaModo === 'reducida' ? COLUMNS_REDUCIDA : COLUMNS_CRUDA, [vistaModo]);
+    const autoColWidths = useMemo(() => calcularAnchosAutomaticos(COLUMNS, preguntas), [COLUMNS, preguntas]);
+    const colWidths = useMemo(() => Object.fromEntries(
+        COLUMNS.map(col => [col.key, manualColWidths[col.key] ?? autoColWidths[col.key] ?? WIDTH_RULES[col.key]?.fallback ?? 120])
+    ), [COLUMNS, manualColWidths, autoColWidths]);
 
     const topScrollRef = useRef<HTMLDivElement>(null);
     const tableScrollRef = useRef<HTMLDivElement>(null);
@@ -81,9 +178,9 @@ export const VisorDataset: React.FC<VisorDatasetProps> = ({ preguntas, onVerPreg
     const startX = useRef(0);
     const startWidth = useRef(0);
 
-    const tableWidth = useMemo(() =>
-        Object.values(colWidths).reduce((s, w) => s + w, 0),
-        [colWidths]
+    const tableWidth = useMemo(
+        () => COLUMNS.reduce((s, col) => s + (colWidths[col.key] ?? WIDTH_RULES[col.key]?.fallback ?? 120), 0),
+        [COLUMNS, colWidths]
     );
 
     // Sincronizar scrollbars
@@ -107,7 +204,7 @@ export const VisorDataset: React.FC<VisorDatasetProps> = ({ preguntas, onVerPreg
         const onMove = (ev: MouseEvent) => {
             if (!resizingCol.current) return;
             const diff = ev.clientX - startX.current;
-            setColWidths(prev => ({ ...prev, [resizingCol.current!]: Math.max(40, startWidth.current + diff) }));
+            setManualColWidths(prev => ({ ...prev, [resizingCol.current!]: Math.max(40, startWidth.current + diff) }));
         };
         const onUp = () => {
             resizingCol.current = null;
@@ -150,9 +247,9 @@ export const VisorDataset: React.FC<VisorDatasetProps> = ({ preguntas, onVerPreg
             if (w > maxW) maxW = w;
         });
 
-        // Limitar a un máximo razonable
-        maxW = Math.min(maxW, 600);
-        setColWidths(prev => ({ ...prev, [colKey]: maxW }));
+        const regla = WIDTH_RULES[colKey] ?? { min: 60, max: 320, fallback: 120 };
+        maxW = limitarAncho(maxW, regla.min, regla.max);
+        setManualColWidths(prev => ({ ...prev, [colKey]: maxW }));
     }, [COLUMNS]);
 
     // Ordenación
@@ -224,7 +321,6 @@ export const VisorDataset: React.FC<VisorDatasetProps> = ({ preguntas, onVerPreg
         let direction: 'asc' | 'desc' = 'asc';
         if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') direction = 'desc';
         setSortConfig({ key, direction });
-        setPagina(1);
     };
 
     const getSortIcon = (key: string) => {
@@ -234,10 +330,6 @@ export const VisorDataset: React.FC<VisorDatasetProps> = ({ preguntas, onVerPreg
             ? <ArrowUp className="w-3 h-3 ml-1" style={{ color: 'var(--accent-primary)' }} />
             : <ArrowDown className="w-3 h-3 ml-1" style={{ color: 'var(--accent-primary)' }} />;
     };
-
-    const totalPaginas = Math.ceil(sortedPreguntas.length / preguntasPorPagina);
-    const inicio = (pagina - 1) * preguntasPorPagina;
-    const preguntasActuales = sortedPreguntas.slice(inicio, inicio + preguntasPorPagina);
 
     const getCellValue = (p: Pregunta, key: string): React.ReactNode => {
         switch (key) {
@@ -338,7 +430,7 @@ export const VisorDataset: React.FC<VisorDatasetProps> = ({ preguntas, onVerPreg
                     <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>Base de datos</h2>
                     <div style={{ display: 'flex', marginLeft: '16px', backgroundColor: 'var(--bg-tertiary)', padding: '4px', borderRadius: '8px', gap: '4px' }}>
                         <button
-                            onClick={() => { setVistaModo('reducida'); setColWidths(INITIAL_WIDTHS); }}
+                            onClick={() => { setVistaModo('reducida'); setManualColWidths({}); }}
                             style={{
                                 padding: '4px 12px', fontSize: '12px', fontWeight: 600, borderRadius: '6px',
                                 backgroundColor: vistaModo === 'reducida' ? 'var(--bg-card)' : 'transparent',
@@ -350,7 +442,7 @@ export const VisorDataset: React.FC<VisorDatasetProps> = ({ preguntas, onVerPreg
                             Vista Resumida
                         </button>
                         <button
-                            onClick={() => { setVistaModo('cruda'); setColWidths(INITIAL_WIDTHS); }}
+                            onClick={() => { setVistaModo('cruda'); setManualColWidths({}); }}
                             style={{
                                 padding: '4px 12px', fontSize: '12px', fontWeight: 600, borderRadius: '6px',
                                 backgroundColor: vistaModo === 'cruda' ? 'var(--bg-card)' : 'transparent',
@@ -364,7 +456,7 @@ export const VisorDataset: React.FC<VisorDatasetProps> = ({ preguntas, onVerPreg
                     </div>
                 </div>
                 <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)' }}>
-                    Mostrando {inicio + 1} – {Math.min(inicio + preguntasPorPagina, sortedPreguntas.length)} de {sortedPreguntas.length} registros
+                    {sortedPreguntas.length} registros
                 </div>
             </div>
 
@@ -387,11 +479,11 @@ export const VisorDataset: React.FC<VisorDatasetProps> = ({ preguntas, onVerPreg
                 ref={tableScrollRef}
                 onScroll={handleTableScroll}
                 style={{
-                    overflowX: 'auto', overflowY: 'visible',
+                    overflowX: 'auto', overflowY: 'auto',
+                    maxHeight: 'min(72vh, 720px)',
                     border: '1px solid var(--border-secondary)', borderTop: 'none',
                     borderRadius: '0 0 8px 8px',
                     backgroundColor: 'var(--bg-secondary)',
-                    marginTop: '-16px',
                 }}
             >
                 <table ref={tableRef} style={{ width: `${tableWidth}px`, borderCollapse: 'collapse', tableLayout: 'fixed' }}>
@@ -411,7 +503,10 @@ export const VisorDataset: React.FC<VisorDatasetProps> = ({ preguntas, onVerPreg
                                         letterSpacing: '0.05em',
                                         cursor: 'pointer',
                                         userSelect: 'none',
-                                        position: 'relative',
+                                        position: 'sticky',
+                                        top: 0,
+                                        zIndex: 2,
+                                        backgroundColor: 'var(--bg-tertiary)',
                                         borderBottom: '2px solid var(--border-primary)',
                                         whiteSpace: 'nowrap',
                                     }}
@@ -439,15 +534,15 @@ export const VisorDataset: React.FC<VisorDatasetProps> = ({ preguntas, onVerPreg
                         </tr>
                     </thead>
                     <tbody>
-                        {preguntasActuales.length === 0 ? (
+                        {sortedPreguntas.length === 0 ? (
                             <tr>
                                 <td colSpan={COLUMNS.length} style={{ padding: '32px', textAlign: 'center', color: 'var(--text-tertiary)' }}>
                                     No hay datos para mostrar con los filtros activos.
                                 </td>
                             </tr>
                         ) : (
-                            preguntasActuales.map((p, idx) => (
-                                <tr key={idx}
+                            sortedPreguntas.map((p) => (
+                                <tr key={`${p.id_cuestionario}::${p.id}`}
                                     style={{
                                         borderBottom: '1px solid var(--border-secondary)',
                                         cursor: onVerPregunta ? 'pointer' : 'default',
@@ -486,41 +581,6 @@ export const VisorDataset: React.FC<VisorDatasetProps> = ({ preguntas, onVerPreg
                     </tbody>
                 </table>
             </div>
-
-            {/* Paginación */}
-            {totalPaginas > 1 && (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', marginTop: '8px' }}>
-                    <button
-                        disabled={pagina === 1}
-                        onClick={() => setPagina(p => p - 1)}
-                        style={{
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            padding: '8px', borderRadius: '6px',
-                            border: '1px solid var(--border-primary)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)',
-                            cursor: pagina === 1 ? 'not-allowed' : 'pointer',
-                            opacity: pagina === 1 ? 0.5 : 1,
-                        }}
-                    >
-                        <ChevronLeft className="w-5 h-5" />
-                    </button>
-                    <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                        Página {pagina} de {totalPaginas}
-                    </span>
-                    <button
-                        disabled={pagina === totalPaginas}
-                        onClick={() => setPagina(p => p + 1)}
-                        style={{
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            padding: '8px', borderRadius: '6px',
-                            border: '1px solid var(--border-primary)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)',
-                            cursor: pagina === totalPaginas ? 'not-allowed' : 'pointer',
-                            opacity: pagina === totalPaginas ? 0.5 : 1,
-                        }}
-                    >
-                        <ChevronRight className="w-5 h-5" />
-                    </button>
-                </div>
-            )}
         </div>
     );
 };

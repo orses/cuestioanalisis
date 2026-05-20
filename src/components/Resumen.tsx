@@ -67,8 +67,20 @@ export const Resumen: React.FC<ResumenProps> = ({ preguntas, onVerEjercicio, onF
     const [ejSortCol, setEjSortCol] = useState<EjCol>('organismo');
     const [ejSortAsc, setEjSortAsc] = useState(true);
 
+    const formatearVariante = (variante: string) => variante
+        .replace(/\bEXT\b/g, 'Extraordinario')
+        .replace(/_/g, ' ')
+        .trim();
+
+    const formatearEscala = (escala: string, variante: string) => {
+        const base = ({ AUX: 'Auxiliar', ADV: 'Administrativo', PSX: 'Servicios Grales.' } as Record<string, string>)[escala] || escala || '—';
+        const detalle = formatearVariante(variante);
+        if (!detalle || detalle.toLowerCase() === 'extraordinario') return base;
+        return `${base} (${detalle.toLowerCase()})`;
+    };
+
     const ejerciciosBase = useMemo(() => {
-        const conteo: Record<string, { count: number; cuestionario: string; organismo: string; escala: string; año: number; acceso: string; tipo: string; anuladas: number }> = {};
+        const conteo: Record<string, { count: number; cuestionario: string; organismo: string; escala: string; año: number; acceso: string; tipo: string; variante: string; anuladas: number }> = {};
         preguntas.forEach(p => {
             const ej = obtenerClaveEjercicioCuestionario(p);
             if (!conteo[ej]) {
@@ -80,6 +92,7 @@ export const Resumen: React.FC<ResumenProps> = ({ preguntas, onVerEjercicio, onF
                     año: p.metadatos.año,
                     acceso: p.metadatos.acceso,
                     tipo: p.metadatos.tipo,
+                    variante: p.metadatos.variante,
                     anuladas: 0,
                 };
             }
@@ -477,7 +490,7 @@ export const Resumen: React.FC<ResumenProps> = ({ preguntas, onVerEjercicio, onF
                         <h3 className="text-lg font-bold text-heading mb-4">
                             Ejercicios <span className="text-sm font-normal text-muted">({distribucionEjercicios.length})</span>
                         </h3>
-                        <div style={{ overflowX: 'auto' }}>
+                        <div style={{ overflow: 'auto', maxHeight: 'min(70vh, 640px)' }}>
                             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                                 <thead>
                                     <tr style={{ borderBottom: '2px solid var(--border-secondary)' }}>
@@ -490,6 +503,7 @@ export const Resumen: React.FC<ResumenProps> = ({ preguntas, onVerEjercicio, onF
                                                     fontWeight: 700, color: ejSortCol === col ? 'var(--accent-primary)' : 'var(--text-tertiary)',
                                                     fontSize: '10px', textTransform: 'uppercase', whiteSpace: 'nowrap',
                                                     cursor: 'pointer', userSelect: 'none',
+                                                    position: 'sticky', top: 0, zIndex: 2, backgroundColor: 'var(--bg-secondary)',
                                                 }}>
                                                 {label} {ejSortCol === col ? (ejSortAsc ? '▲' : '▼') : ''}
                                             </th>
@@ -511,7 +525,7 @@ export const Resumen: React.FC<ResumenProps> = ({ preguntas, onVerEjercicio, onF
                                             <td style={{ padding: '5px 10px', fontFamily: 'monospace', fontWeight: 700, color: 'var(--accent-primary)' }}>{d.cuestionario || '—'}</td>
                                             <td style={{ padding: '5px 10px', fontWeight: 600, color: 'var(--text-primary)' }}>{d.organismo || '—'}</td>
                                             <td style={{ padding: '5px 10px', color: 'var(--text-primary)' }}>
-                                                {({ AUX: 'Auxiliar', ADV: 'Administrativo', PSX: 'Servicios Grales.' } as Record<string, string>)[d.escala] || d.escala || '—'}
+                                                {formatearEscala(d.escala, d.variante)}
                                             </td>
                                             <td style={{ padding: '5px 10px', fontWeight: 700, color: 'var(--text-primary)' }}>{d.año > 0 ? d.año : '—'}</td>
                                             <td style={{ padding: '5px 10px', color: 'var(--text-primary)' }}>
