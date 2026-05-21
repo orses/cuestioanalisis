@@ -409,7 +409,7 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
                                                 borderRadius: '8px',
                                                 color: 'var(--text-primary)',
                                             }}
-                                            formatter={(val: number | undefined) => `${val ?? 0}%`}
+                                            formatter={(val: unknown) => `${typeof val === 'number' ? val : Number(val) || 0}%`}
                                         />
                                     </RadarChart>
                                 </ResponsiveContainer>

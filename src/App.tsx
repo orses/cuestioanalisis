@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Upload, Sun, Moon, FileSpreadsheet, ChevronUp } from 'lucide-react';
+import { Upload, Sun, Moon, FileSpreadsheet, ChevronUp, AlertCircle } from 'lucide-react';
 import { procesarCSV, parsearCatalogo, csvTieneIdCuestionario, normalizarCatalogo, normalizarDatasetAnalisis } from './utils/parser';
 import type { DatasetAnalisis, Pregunta, CuestionarioMeta } from './types';
 import { useFiltros } from './hooks/useFiltros';
@@ -30,10 +30,15 @@ const ALLOWED_EDICION_KEYS = new Set<string>([
   'observaciones', 'conceptos_clave',
 ]);
 
+function obtenerMensajeError(error: unknown): string {
+  return error instanceof Error ? error.message : 'Se ha producido un error al procesar el archivo.';
+}
+
 function App() {
   // ——— Dataset ———
   const [dataset, setDataset] = useState<DatasetAnalisis | null>(null);
   const [loading, setLoading] = useState(false);
+  const [mensajeError, setMensajeError] = useState<string | null>(null);
   const [nombresArchivos, setNombresArchivos] = useState<string[]>([]);
 
   // ——— Catálogo de cuestionarios ———
@@ -122,22 +127,30 @@ function App() {
 
   // ——— Carga de archivos ———
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
+    try {
+      setMensajeError(null);
+      const files = Array.from(e.target.files || []);
+      if (files.length === 0) return;
 
-    const checks = await Promise.all(files.map(async f => ({
-      file: f,
-      tieneId: await csvTieneIdCuestionario(f),
-    })));
+      const checks = await Promise.all(files.map(async f => ({
+        file: f,
+        tieneId: await csvTieneIdCuestionario(f),
+      })));
 
-    const sinId = checks.filter(c => !c.tieneId);
-    if (sinId.length > 0) {
-      setArchivosEnEspera(checks.map(c => ({ file: c.file, idCuestionario: c.tieneId ? '' : '' })));
-      setModalIdAbierto(true);
-      return;
+      const sinId = checks.filter(c => !c.tieneId);
+      if (sinId.length > 0) {
+        setArchivosEnEspera(checks.map(c => ({ file: c.file, idCuestionario: c.tieneId ? '' : '' })));
+        setModalIdAbierto(true);
+        return;
+      }
+
+      await procesarArchivos(files.map(f => ({ file: f })));
+    } catch (error) {
+      console.error('Error preparando archivo:', error);
+      setMensajeError(obtenerMensajeError(error));
+    } finally {
+      e.target.value = '';
     }
-
-    await procesarArchivos(files.map(f => ({ file: f })));
   };
 
   const procesarArchivos = async (archivos: { file: File; idCuestionario?: string }[]) => {
@@ -168,9 +181,11 @@ function App() {
       setDataset(nuevoDataset);
       setNombresArchivos(prev => [...prev, ...nombres]);
       setEdiciones({});
+      setMensajeError(null);
       guardarDataset(nuevoDataset, [...nombresArchivos, ...nombres]).catch(() => { });
     } catch (error) {
       console.error('Error procesando archivo:', error);
+      setMensajeError(obtenerMensajeError(error));
     } finally {
       setLoading(false);
     }
@@ -189,11 +204,16 @@ function App() {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
+      setMensajeError(null);
       const nuevoCatalogo = await parsearCatalogo(file);
       setCatalogo(nuevoCatalogo);
+      setMensajeError(null);
       guardarCatalogo(nuevoCatalogo).catch(() => { });
     } catch (error) {
       console.error('Error procesando catálogo:', error);
+      setMensajeError(obtenerMensajeError(error));
+    } finally {
+      e.target.value = '';
     }
   };
 
@@ -345,6 +365,16 @@ function App() {
                 <input type="file" accept=".csv,.xlsx,.xlsm" className="hidden" onChange={handleCargarCatalogo} />
               </label>
             </div>
+            {mensajeError && (
+              <div
+                role="alert"
+                className="mt-5 flex items-start gap-2 rounded-lg border px-3 py-2 text-left text-sm"
+                style={{ borderColor: 'var(--accent-danger)', color: 'var(--text-primary)', backgroundColor: 'rgba(220, 38, 38, 0.08)' }}
+              >
+                <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: 'var(--accent-danger)' }} />
+                <span>{mensajeError}</span>
+              </div>
+            )}
             <p className="text-xs text-muted mt-4">Preguntas en CSV con delimitador «|» · Catálogo en Excel o CSV · Se pueden seleccionar varios archivos de preguntas a la vez</p>
           </div>
         </div>
@@ -377,10 +407,29 @@ function App() {
         )}
         onDescargarCSV={descargarCSV}
         onToggleDark={() => setDark(!dark)}
-        onReemplazar={() => { setDataset(null); setEdiciones({}); setNombresArchivos([]); }}
+        onReemplazar={() => { setDataset(null); setEdiciones({}); setNombresArchivos([]); setMensajeError(null); }}
         onFileUpload={handleFileUpload}
         onSetVista={setVistaActual}
       />
+
+      {mensajeError && (
+        <div
+          role="alert"
+          className="mx-auto mt-4 flex max-w-[1800px] items-start gap-2 rounded-lg border px-4 py-3 text-sm"
+          style={{ borderColor: 'var(--accent-danger)', color: 'var(--text-primary)', backgroundColor: 'rgba(220, 38, 38, 0.08)' }}
+        >
+          <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: 'var(--accent-danger)' }} />
+          <span className="flex-1">{mensajeError}</span>
+          <button
+            type="button"
+            className="font-semibold hover:underline"
+            style={{ color: 'var(--accent-danger)' }}
+            onClick={() => setMensajeError(null)}
+          >
+            Cerrar
+          </button>
+        </div>
+      )}
 
       {/* ———— FILTROS GLOBALES ———— */}
       {vistaActual !== 'ayuda' && vistaActual !== 'generador' && vistaActual !== 'catalogo' && (

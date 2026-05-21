@@ -25,7 +25,7 @@ jobs:
           node-version: 22
           cache: npm
 
-      - run: npm ci
+      - run: npm ci --ignore-scripts
 
       # Gate estricto: solo dependencias que llegan al navegador.
       # Una vuln high+ en prod bloquea el deploy.

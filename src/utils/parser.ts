@@ -7,6 +7,60 @@ import { ACCESS_CODES, CALL_TYPE_CODES, EXERCISE_TYPE_CODES, MODEL_CODES, QUOTA_
 type ValorCelda = string | number | boolean | Date | null | undefined;
 type FilaFuente = Record<string, ValorCelda>;
 
+const BYTES_POR_MB = 1024 * 1024;
+const MAX_CSV_PREGUNTAS_BYTES = 25 * BYTES_POR_MB;
+const MAX_CSV_CATALOGO_BYTES = 10 * BYTES_POR_MB;
+const MAX_EXCEL_CATALOGO_BYTES = 15 * BYTES_POR_MB;
+const MAX_FILAS_PREGUNTAS = 50000;
+const MAX_FILAS_CATALOGO = 20000;
+const MAX_ENTRADAS_EXCEL = 250;
+const MAX_EXCEL_DESCOMPRIMIDO_BYTES = 80 * BYTES_POR_MB;
+const MAX_XML_BYTES = 12 * BYTES_POR_MB;
+const MAX_CELDAS_EXCEL = 300000;
+const MAX_CADENAS_COMPARTIDAS = 100000;
+const MAX_CARACTERES_COMPARTIDOS = 8 * BYTES_POR_MB;
+
+function formatearBytes(bytes: number): string {
+    const mb = bytes / BYTES_POR_MB;
+    return `${mb >= 10 ? mb.toFixed(0) : mb.toFixed(1)} MB`;
+}
+
+function crearErrorLimite(nombre: string, actual: number, maximo: number, unidad: 'bytes' | 'filas' | 'elementos' | 'celdas' | 'caracteres'): Error {
+    const actualFmt = unidad === 'bytes' ? formatearBytes(actual) : actual.toLocaleString('es-ES');
+    const maximoFmt = unidad === 'bytes' ? formatearBytes(maximo) : maximo.toLocaleString('es-ES');
+    return new Error(`${nombre} supera el límite permitido: ${actualFmt} de ${maximoFmt}.`);
+}
+
+function validarTamanoArchivo(file: File, maximoBytes: number, nombre: string): void {
+    if (file.size > maximoBytes) {
+        throw crearErrorLimite(nombre, file.size, maximoBytes, 'bytes');
+    }
+}
+
+function validarNumeroFilas(total: number, maximo: number, nombre: string): void {
+    if (total > maximo) {
+        throw crearErrorLimite(nombre, total, maximo, 'filas');
+    }
+}
+
+function obtenerTamanoDescomprimido(archivo: unknown): number | null {
+    const tamano = (archivo as { _data?: { uncompressedSize?: unknown } })._data?.uncompressedSize;
+    return typeof tamano === 'number' && Number.isFinite(tamano) ? tamano : null;
+}
+
+function validarEstructuraExcel(zip: JSZip): void {
+    const archivos = Object.values(zip.files).filter(archivo => !archivo.dir);
+
+    if (archivos.length > MAX_ENTRADAS_EXCEL) {
+        throw crearErrorLimite('El archivo Excel', archivos.length, MAX_ENTRADAS_EXCEL, 'elementos');
+    }
+
+    const totalDescomprimido = archivos.reduce((total, archivo) => total + (obtenerTamanoDescomprimido(archivo) ?? 0), 0);
+    if (totalDescomprimido > MAX_EXCEL_DESCOMPRIMIDO_BYTES) {
+        throw crearErrorLimite('El contenido descomprimido del Excel', totalDescomprimido, MAX_EXCEL_DESCOMPRIMIDO_BYTES, 'bytes');
+    }
+}
+
 function valorATexto(valor: ValorCelda): string {
     if (valor === null || valor === undefined) return '';
     if (valor instanceof Date) return valor.toISOString();
@@ -320,17 +374,22 @@ export function normalizarDatasetAnalisis(dataset: DatasetAnalisis): DatasetAnal
 }
 
 export const procesarCSV = (file: File, idCuestionarioManual?: string): Promise<DatasetAnalisis> => {
+    validarTamanoArchivo(file, MAX_CSV_PREGUNTAS_BYTES, 'El CSV de preguntas');
+
     return new Promise((resolve, reject) => {
         Papa.parse(file, {
             header: true,
             delimiter: '|',
             skipEmptyLines: true,
             complete: (results) => {
-                const preguntas: Pregunta[] = [];
-                const conceptos_globales: ConceptoAdyacente[] = [];
-                const cuestionarios_set = new Set<string>();
-                const ejercicios_set = new Set<string>();
-                const idsUsados = new Map<string, number>();
+                try {
+                    validarNumeroFilas(results.data.length, MAX_FILAS_PREGUNTAS, 'El CSV de preguntas');
+
+                    const preguntas: Pregunta[] = [];
+                    const conceptos_globales: ConceptoAdyacente[] = [];
+                    const cuestionarios_set = new Set<string>();
+                    const ejercicios_set = new Set<string>();
+                    const idsUsados = new Map<string, number>();
 
                 results.data.forEach((rawRow) => {
                     const get = crearGetCampo(rawRow as FilaFuente);
@@ -406,12 +465,15 @@ export const procesarCSV = (file: File, idCuestionarioManual?: string): Promise<
                     });
                 });
 
-                resolve({
-                    preguntas,
-                    conceptos_globales,
-                    ejercicios_unicos: Array.from(ejercicios_set),
-                    cuestionarios_cargados: Array.from(cuestionarios_set)
-                });
+                    resolve({
+                        preguntas,
+                        conceptos_globales,
+                        ejercicios_unicos: Array.from(ejercicios_set),
+                        cuestionarios_cargados: Array.from(cuestionarios_set)
+                    });
+                } catch (error) {
+                    reject(error);
+                }
             },
             error: (error) => reject(error)
         });
@@ -421,12 +483,21 @@ export const procesarCSV = (file: File, idCuestionarioManual?: string): Promise<
 const esExcel = (file: File): boolean => /\.(xlsx|xlsm)$/i.test(file.name);
 
 const leerFilasCatalogoCSV = (file: File): Promise<FilaFuente[]> => {
+    validarTamanoArchivo(file, MAX_CSV_CATALOGO_BYTES, 'El CSV del catálogo');
+
     return new Promise((resolve, reject) => {
         Papa.parse(file, {
             header: true,
             delimitersToGuess: ['|', ';', '\t', ','],
             skipEmptyLines: true,
-            complete: (results) => resolve(results.data as FilaFuente[]),
+            complete: (results) => {
+                try {
+                    validarNumeroFilas(results.data.length, MAX_FILAS_CATALOGO, 'El CSV del catálogo');
+                    resolve(results.data as FilaFuente[]);
+                } catch (error) {
+                    reject(error);
+                }
+            },
             error: (error) => reject(error)
         });
     });
@@ -444,14 +515,30 @@ function parsearXml(xml: string): Document {
 async function leerXml(zip: JSZip, ruta: string): Promise<Document | null> {
     const archivo = zip.file(ruta.replace(/^\/+/, ''));
     if (!archivo) return null;
-    return parsearXml(await archivo.async('text'));
+    const xml = await archivo.async('text');
+    const xmlBytes = new Blob([xml]).size;
+    if (xmlBytes > MAX_XML_BYTES) {
+        throw crearErrorLimite(`El XML interno ${ruta}`, xmlBytes, MAX_XML_BYTES, 'bytes');
+    }
+    return parsearXml(xml);
 }
 
 function leerCadenasCompartidas(doc: Document | null): string[] {
     if (!doc) return [];
-    return Array.from(doc.getElementsByTagName('si')).map(si =>
-        Array.from(si.getElementsByTagName('t')).map(t => t.textContent ?? '').join('')
-    );
+    const nodos = Array.from(doc.getElementsByTagName('si'));
+    if (nodos.length > MAX_CADENAS_COMPARTIDAS) {
+        throw crearErrorLimite('El catálogo Excel', nodos.length, MAX_CADENAS_COMPARTIDAS, 'elementos');
+    }
+
+    let caracteres = 0;
+    return nodos.map(si => {
+        const texto = Array.from(si.getElementsByTagName('t')).map(t => t.textContent ?? '').join('');
+        caracteres += texto.length;
+        if (caracteres > MAX_CARACTERES_COMPARTIDOS) {
+            throw crearErrorLimite('El texto compartido del catálogo Excel', caracteres, MAX_CARACTERES_COMPARTIDOS, 'caracteres');
+        }
+        return texto;
+    });
 }
 
 function resolverRutaHoja(target: string): string {
@@ -496,9 +583,19 @@ function leerValorCelda(celda: Element, cadenasCompartidas: string[]): ValorCeld
 }
 
 function leerFilasHoja(doc: Document, cadenasCompartidas: string[]): ValorCelda[][] {
-    return Array.from(doc.getElementsByTagName('row')).map(row => {
+    const filasXml = Array.from(doc.getElementsByTagName('row'));
+    validarNumeroFilas(filasXml.length, MAX_FILAS_CATALOGO + 1, 'La hoja del catálogo Excel');
+
+    let celdasLeidas = 0;
+    return filasXml.map(row => {
         const valores: ValorCelda[] = [];
-        Array.from(row.getElementsByTagName('c')).forEach(celda => {
+        const celdas = Array.from(row.getElementsByTagName('c'));
+        celdasLeidas += celdas.length;
+        if (celdasLeidas > MAX_CELDAS_EXCEL) {
+            throw crearErrorLimite('La hoja del catálogo Excel', celdasLeidas, MAX_CELDAS_EXCEL, 'celdas');
+        }
+
+        celdas.forEach(celda => {
             const referencia = celda.getAttribute('r') ?? '';
             const indice = obtenerIndiceColumna(referencia);
             if (indice >= 0) valores[indice] = leerValorCelda(celda, cadenasCompartidas);
@@ -528,7 +625,10 @@ function convertirFilasExcel(filas: ValorCelda[][]): FilaFuente[] {
 }
 
 const leerFilasCatalogoExcel = async (file: File): Promise<FilaFuente[]> => {
+    validarTamanoArchivo(file, MAX_EXCEL_CATALOGO_BYTES, 'El Excel del catálogo');
+
     const zip = await JSZip.loadAsync(await file.arrayBuffer());
+    validarEstructuraExcel(zip);
     const cadenasCompartidas = leerCadenasCompartidas(await leerXml(zip, 'xl/sharedStrings.xml'));
     const rutaHoja = await obtenerRutaPrimeraHoja(zip);
     const hoja = await leerXml(zip, rutaHoja);
