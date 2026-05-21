@@ -213,9 +213,7 @@ function App() {
       if (cat) {
         const catalogoNormalizado = normalizarCatalogo(cat);
         setCatalogo(catalogoNormalizado);
-        if (catalogoNormalizado.length !== cat.length) {
-          guardarCatalogo(catalogoNormalizado).catch(() => { });
-        }
+        guardarCatalogo(catalogoNormalizado).catch(() => { });
       }
     }).catch(() => { });
     // eslint-disable-next-line react-hooks/exhaustive-deps

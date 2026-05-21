@@ -151,8 +151,8 @@ export const CatalogoCuestionarios: React.FC<Props> = ({
 
         if (!sortKey) return filtrado;
         return [...filtrado].sort((a, b) => {
-            const va = a[sortKey];
-            const vb = b[sortKey];
+            const va = sortKey === 'version_sistema_operativo' ? obtenerVersionSistemaOperativo(a) : a[sortKey];
+            const vb = sortKey === 'version_sistema_operativo' ? obtenerVersionSistemaOperativo(b) : b[sortKey];
             let cmp = 0;
             if (typeof va === 'boolean' && typeof vb === 'boolean') {
                 cmp = Number(va) - Number(vb);
@@ -226,7 +226,16 @@ export const CatalogoCuestionarios: React.FC<Props> = ({
     }, []);
 
     const renderHeader = (campo: keyof CuestionarioMeta, label: string, align: ColumnAlign = 'left') => (
-        <th className="p-0 font-semibold text-muted whitespace-nowrap relative select-none">
+        <th
+            className="p-0 font-semibold text-muted whitespace-nowrap relative select-none"
+            style={{
+                position: 'sticky',
+                top: 0,
+                zIndex: 3,
+                backgroundColor: 'var(--bg-secondary)',
+                boxShadow: '0 1px 0 var(--border-secondary)',
+            }}
+        >
             <button
                 onClick={() => handleSort(campo)}
                 className={`flex items-center gap-1 w-full px-2 py-2 pr-3 hover:text-heading transition-colors overflow-hidden ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : 'justify-start'}`}
@@ -248,7 +257,7 @@ export const CatalogoCuestionarios: React.FC<Props> = ({
 
     const renderBoolIcon = (valor: unknown) => (
         valor === true
-            ? <Check className="w-4 h-4 mx-auto" style={{ color: 'var(--accent-success)' }} />
+            ? <Check className="w-4 h-4 mx-auto" style={{ color: '#047857' }} />
             : <span className="block h-4" aria-hidden="true" />
     );
 
@@ -359,7 +368,7 @@ export const CatalogoCuestionarios: React.FC<Props> = ({
                     </div>
 
                     {/* Tabla */}
-                    <div className="overflow-x-auto">
+                    <div style={{ overflow: 'auto', maxHeight: 'min(70vh, 640px)' }}>
                         <table
                             ref={tableRef}
                             className="text-sm"
@@ -397,7 +406,7 @@ export const CatalogoCuestionarios: React.FC<Props> = ({
                                             {renderTextCell(
                                                 <>
                                                     {c.id_cuestionario}
-                                                    {cargado && <Check className="w-3.5 h-3.5 inline ml-1" style={{ color: 'var(--accent-success)' }} />}
+                                                    {cargado && <Check className="w-3.5 h-3.5 inline ml-1" style={{ color: '#047857' }} />}
                                                 </>,
                                                 'font-mono font-semibold'
                                             )}

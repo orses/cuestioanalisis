@@ -61,13 +61,16 @@ function pareceBooleano(valor: ValorCelda): boolean {
     return VALORES_VERDADEROS.has(normalizado) || VALORES_FALSOS.has(normalizado);
 }
 
-/**
- * Normaliza el nombre de un programa o aplicación eliminando versiones, años,
- * sufijos numéricos y variantes como «Clásico».
- */
-function normalizarPrograma(app: string): string {
-    if (!app) return app;
-    return app
+function normalizarClavePrograma(texto: string): string {
+    return texto
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim();
+}
+
+function limpiarFragmentoPrograma(texto: string): string {
+    return texto
         .replace(/\b\d{4}\b/g, '')
         .replace(/\b365\b/g, '')
         .replace(/\b\d{1,2}\b/g, '')
@@ -75,6 +78,49 @@ function normalizarPrograma(app: string): string {
         .replace(/[,;]+/g, '')
         .replace(/\s+/g, ' ')
         .trim();
+}
+
+function colapsarPalabrasRepetidas(texto: string): string {
+    return texto
+        .split(' ')
+        .filter((palabra, indice, palabras) => indice === 0 || normalizarClavePrograma(palabra) !== normalizarClavePrograma(palabras[indice - 1]))
+        .join(' ');
+}
+
+const PROGRAM_ALIASES: Record<string, string> = {
+    palabra: 'Word',
+    sobresalir: 'Excel',
+    acceso: 'Access',
+    perspectiva: 'Outlook',
+    borde: 'Edge',
+    escritor: 'Writer',
+    calculo: 'Calc',
+    ventanas: 'Windows',
+};
+
+function normalizarAliasPrograma(texto: string): string {
+    return PROGRAM_ALIASES[normalizarClavePrograma(texto)] ?? texto;
+}
+
+/**
+ * Normaliza el nombre de un programa o aplicación eliminando versiones, años,
+ * sufijos numéricos y variantes como «Clásico».
+ */
+export function normalizarPrograma(app: string): string {
+    const texto = normalizarTextoVisual(app);
+    if (!texto) return '';
+
+    const fragmentos = texto
+        .split(/\s*(?:[,;/|]+|\s+(?:y|e|and)\s+)\s*/i)
+        .map(limpiarFragmentoPrograma)
+        .filter(Boolean);
+    const clavesUnicas = new Set(fragmentos.map(normalizarClavePrograma));
+
+    if (fragmentos.length > 1 && clavesUnicas.size === 1) {
+        return normalizarAliasPrograma(fragmentos[0]);
+    }
+
+    return normalizarAliasPrograma(colapsarPalabrasRepetidas(limpiarFragmentoPrograma(texto)));
 }
 
 /** Dado un objeto-fila original, devuelve funciones de lectura insensibles a acentos y separadores. */
@@ -108,7 +154,7 @@ function crearLectorCampos(row: FilaFuente) {
             const valor = getAll(campo).find(v => v.trim() !== '' && !pareceBooleano(v));
             if (valor !== undefined) return valor;
         }
-        return getAny(campos);
+        return '';
     };
 
     return { get, getAny, getBoolAny, getTextAny };
@@ -263,10 +309,11 @@ export function normalizarDatasetAnalisis(dataset: DatasetAnalisis): DatasetAnal
             variante: metadatosEjercicio.variante,
             extraordinaria: metadatosEjercicio.extraordinaria || pregunta.metadatos.extraordinaria,
         };
+        const aplicacion = normalizarPrograma(pregunta.aplicacion);
 
-        if (sonMetadatosIguales(pregunta.metadatos, metadatos)) return pregunta;
+        if (sonMetadatosIguales(pregunta.metadatos, metadatos) && pregunta.aplicacion === aplicacion) return pregunta;
         hayCambios = true;
-        return { ...pregunta, metadatos };
+        return { ...pregunta, metadatos, aplicacion };
     });
 
     return hayCambios ? { ...dataset, preguntas } : dataset;
@@ -498,6 +545,30 @@ function parsearNumeroPreguntas(valor: string): number {
     return parseInt(limpio || '0', 10) || 0;
 }
 
+function normalizarVersionSistemaOperativo(valor: string): string {
+    const texto = normalizarTextoVisual(valor);
+    return texto && !pareceBooleano(texto) ? texto : '';
+}
+
+function inferirVersionSistemaOperativo(version: string): string {
+    const texto = normalizarTextoVisual(version);
+    const match = texto.match(/\b(?:win|windows)\s*[-_ ]?(10|11)\b/i);
+    return match ? `Windows ${match[1]}` : '';
+}
+
+function normalizarCuestionarioMeta(item: CuestionarioMeta): CuestionarioMeta {
+    const legado = (item as unknown as { sistema_operativo?: unknown }).sistema_operativo;
+    const versionLegada = typeof legado === 'string' ? normalizarVersionSistemaOperativo(legado) : '';
+    const versionSistemaOperativo = normalizarVersionSistemaOperativo(item.version_sistema_operativo)
+        || versionLegada
+        || inferirVersionSistemaOperativo(item.version);
+
+    return {
+        ...item,
+        version_sistema_operativo: versionSistemaOperativo,
+    };
+}
+
 function crearCuestionarioMeta(rawRow: FilaFuente): CuestionarioMeta | null {
     const { getAny, getBoolAny, getTextAny } = crearLectorCampos(rawRow);
     const cuestionario = normalizarTextoVisual(getAny(['cuestionario', 'ejercicio', 'id_ejercicio']));
@@ -513,9 +584,15 @@ function crearCuestionarioMeta(rawRow: FilaFuente): CuestionarioMeta | null {
         estado: normalizarTextoVisual(getAny(['estado'])),
         recopilacion: getBoolAny(['recopilacion', 'recopilación', 'rec']),
         num_preguntas: parsearNumeroPreguntas(getAny(['num_preguntas', 'numero_preguntas', 'número_preguntas', 'numero de preguntas', 'número de preguntas', 'nº preguntas', 'n.º preguntas', 'num', 'numero', 'número', 'n'])),
-        version_sistema_operativo: normalizarTextoVisual(getTextAny([
+        version_sistema_operativo: normalizarVersionSistemaOperativo(getTextAny([
             'version_sistema_operativo',
             'versión_sistema_operativo',
+            'version_so',
+            'versión_so',
+            'version so',
+            'versión so',
+            'so_version',
+            'so version',
             'version sistema operativo',
             'versión sistema operativo',
             'version del sistema operativo',
@@ -578,7 +655,7 @@ function obtenerClaveCatalogo(cuestionario: CuestionarioMeta): string {
 export function normalizarCatalogo(catalogo: CuestionarioMeta[]): CuestionarioMeta[] {
     const grupos = new Map<string, { item: CuestionarioMeta; filas: number; maxPreguntas: number }>();
 
-    catalogo.forEach(item => {
+    catalogo.map(normalizarCuestionarioMeta).forEach(item => {
         const clave = obtenerClaveCatalogo(item);
         const grupo = grupos.get(clave);
 

@@ -3,6 +3,7 @@ import type { Pregunta } from '../types';
 import { ChevronDown, ChevronUp, AlertCircle, CheckCircle2, XCircle, Save, Pencil, Copy, Check } from 'lucide-react';
 import { getMateriaColor } from '../utils/colores';
 import { formatAccessLabel, formatCallTypeLabel, formatExerciseTypeLabel, formatModelLabel, formatQuotaLabel, formatScaleLabel, formatVariantLabel } from '../utils/metadata';
+import { normalizarPrograma } from '../utils/parser';
 
 interface TablaPreguntasProps {
     preguntas: Pregunta[];
@@ -478,7 +479,7 @@ export const TablaPreguntas: React.FC<TablaPreguntasProps> = ({ preguntas, onGua
                                                                             </div>
                                                                             <div>
                                                                                 <span className="block text-[10px] text-muted uppercase mb-0.5">Aplicación</span>
-                                                                                <span className="font-medium text-heading cursor-pointer hover:underline" onClick={(e) => { e.stopPropagation(); if (pregunta.aplicacion) onFiltrarAplicacion?.(pregunta.aplicacion); }} title={pregunta.aplicacion ? `Filtrar por aplicación: ${pregunta.aplicacion}` : undefined}>{pregunta.aplicacion || '-'}</span>
+                                                                                <span className="font-medium text-heading cursor-pointer hover:underline" onClick={(e) => { e.stopPropagation(); const app = normalizarPrograma(pregunta.aplicacion); if (app) onFiltrarAplicacion?.(app); }} title={normalizarPrograma(pregunta.aplicacion) ? `Filtrar por aplicación: ${normalizarPrograma(pregunta.aplicacion)}` : undefined}>{normalizarPrograma(pregunta.aplicacion) || '-'}</span>
                                                                             </div>
                                                                         </>
                                                                     )}

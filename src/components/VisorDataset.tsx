@@ -2,6 +2,7 @@ import React, { useState, useMemo, useRef, useCallback } from 'react';
 import type { Pregunta } from '../types';
 import { obtenerEtiquetaEjercicioCuestionario } from '../utils/ejercicios';
 import { formatAccessLabel, formatCallTypeLabel, formatExerciseTypeLabel, formatQuotaLabel } from '../utils/metadata';
+import { normalizarPrograma } from '../utils/parser';
 import { Database, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 
 interface VisorDatasetProps {
@@ -116,7 +117,7 @@ function obtenerTextoCelda(p: Pregunta, key: string): string {
         case 'materia': return p.materia?.toString() ?? '';
         case 'bloque': return p.bloque ?? '';
         case 'tema': return p.tema ?? '';
-        case 'aplicacion': return p.aplicacion ?? '';
+        case 'aplicacion': return normalizarPrograma(p.aplicacion);
         case 'enunciado': return p.enunciado ?? '';
         case 'A': return p.opciones.A ?? '';
         case 'B': return p.opciones.B ?? '';
@@ -139,7 +140,7 @@ function obtenerTextoCelda(p: Pregunta, key: string): string {
         case 'materia_cruda': return p.materia?.toString() ?? '';
         case 'bloque_crudo': return p.bloque ?? '';
         case 'tema_crudo': return p.tema ?? '';
-        case 'aplicacion_cruda': return p.aplicacion ?? '';
+        case 'aplicacion_cruda': return normalizarPrograma(p.aplicacion);
         case 'enunciado_crudo': return p.enunciado ?? '';
         case 'A_cruda': return p.opciones.A ?? '';
         case 'B_cruda': return p.opciones.B ?? '';
@@ -275,7 +276,7 @@ export const VisorDataset: React.FC<VisorDatasetProps> = ({ preguntas, onVerPreg
                 case 'materia': aV = a.materia?.toString() ?? ''; bV = b.materia?.toString() ?? ''; break;
                 case 'bloque': aV = a.bloque ?? ''; bV = b.bloque ?? ''; break;
                 case 'tema': aV = a.tema ?? ''; bV = b.tema ?? ''; break;
-                case 'aplicacion': aV = a.aplicacion ?? ''; bV = b.aplicacion ?? ''; break;
+                case 'aplicacion': aV = normalizarPrograma(a.aplicacion); bV = normalizarPrograma(b.aplicacion); break;
                 case 'enunciado': aV = a.enunciado ?? ''; bV = b.enunciado ?? ''; break;
                 case 'A': aV = a.opciones.A ?? ''; bV = b.opciones.A ?? ''; break;
                 case 'B': aV = a.opciones.B ?? ''; bV = b.opciones.B ?? ''; break;
@@ -299,7 +300,7 @@ export const VisorDataset: React.FC<VisorDatasetProps> = ({ preguntas, onVerPreg
                 case 'materia_cruda': aV = a.materia?.toString() ?? ''; bV = b.materia?.toString() ?? ''; break;
                 case 'bloque_crudo': aV = a.bloque ?? ''; bV = b.bloque ?? ''; break;
                 case 'tema_crudo': aV = a.tema ?? ''; bV = b.tema ?? ''; break;
-                case 'aplicacion_cruda': aV = a.aplicacion ?? ''; bV = b.aplicacion ?? ''; break;
+                case 'aplicacion_cruda': aV = normalizarPrograma(a.aplicacion); bV = normalizarPrograma(b.aplicacion); break;
                 case 'enunciado_crudo': aV = a.enunciado ?? ''; bV = b.enunciado ?? ''; break;
                 case 'A_cruda': aV = a.opciones.A ?? ''; bV = b.opciones.A ?? ''; break;
                 case 'B_cruda': aV = a.opciones.B ?? ''; bV = b.opciones.B ?? ''; break;
@@ -384,7 +385,7 @@ export const VisorDataset: React.FC<VisorDatasetProps> = ({ preguntas, onVerPreg
                 );
             case 'bloque': return <span style={{ color: 'var(--text-primary)', fontSize: '12px' }}>{p.bloque || '—'}</span>;
             case 'tema': return <span style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>{p.tema || '—'}</span>;
-            case 'aplicacion': return <span style={{ color: 'var(--accent-warning)', fontSize: '12px', fontWeight: 500 }}>{p.aplicacion || '—'}</span>;
+            case 'aplicacion': return <span style={{ color: 'var(--accent-warning)', fontSize: '12px', fontWeight: 500 }}>{normalizarPrograma(p.aplicacion) || '—'}</span>;
             case 'enunciado': return <span style={{ color: 'var(--text-primary)', fontSize: '12px', lineHeight: 1.5 }}>{p.enunciado}</span>;
             case 'A': case 'B': case 'C': case 'D': {
                 const esCorrecta = p.correcta === key;
@@ -425,7 +426,7 @@ export const VisorDataset: React.FC<VisorDatasetProps> = ({ preguntas, onVerPreg
             case 'materia_cruda': return <span style={{ fontSize: '11px' }}>{p.materia}</span>;
             case 'bloque_crudo': return <span style={{ fontSize: '11px' }}>{p.bloque}</span>;
             case 'tema_crudo': return <span style={{ fontSize: '11px' }}>{p.tema}</span>;
-            case 'aplicacion_cruda': return <span style={{ fontSize: '11px' }}>{p.aplicacion}</span>;
+            case 'aplicacion_cruda': return <span style={{ fontSize: '11px' }}>{normalizarPrograma(p.aplicacion)}</span>;
             case 'enunciado_crudo': return <span style={{ fontSize: '11px' }}>{p.enunciado}</span>;
             case 'A_cruda': return <span style={{ fontSize: '11px' }}>{p.opciones.A}</span>;
             case 'B_cruda': return <span style={{ fontSize: '11px' }}>{p.opciones.B}</span>;

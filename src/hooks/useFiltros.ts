@@ -1,5 +1,6 @@
 import { useReducer, useMemo, useCallback, useEffect } from 'react';
 import type { Pregunta, CuestionarioMeta } from '../types';
+import { normalizarPrograma } from '../utils/parser';
 
 // ═══════════════════════════════════════════════════════
 // Motor de búsqueda lógica (extraído de App.tsx)
@@ -182,7 +183,7 @@ export function useFiltros({ preguntasEditadas, catalogoFiltrado, hayFiltrosCata
     const aplicacionesDisponibles = useMemo(() => {
         let filtradas = preguntasEditadas;
         if (state.materias.length > 0) filtradas = filtradas.filter(p => state.materias.includes(p.materia.toString()));
-        return Array.from(new Set(filtradas.map(p => p.aplicacion).filter(Boolean))).sort();
+        return Array.from(new Set(filtradas.map(p => normalizarPrograma(p.aplicacion)).filter(Boolean))).sort();
     }, [preguntasEditadas, state.materias]);
 
     const añosDisponibles = useMemo(() =>
@@ -227,7 +228,7 @@ export function useFiltros({ preguntasEditadas, catalogoFiltrado, hayFiltrosCata
             }
             if (state.bloques.length > 0 && !state.bloques.includes(p.bloque)) return false;
             if (state.temas.length > 0 && !state.temas.includes(p.tema)) return false;
-            if (state.aplicaciones.length > 0 && !state.aplicaciones.includes(p.aplicacion)) return false;
+            if (state.aplicaciones.length > 0 && !state.aplicaciones.includes(normalizarPrograma(p.aplicacion))) return false;
             if (state.correctas.length > 0 && !state.correctas.includes(p.correcta || '')) return false;
             if (state.años.length > 0 && !state.años.includes(String(p.metadatos.año))) return false;
             if (state.organismos.length > 0 && !state.organismos.includes(p.metadatos.organismo)) return false;

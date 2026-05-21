@@ -6,6 +6,7 @@ import { ListaPopover, type ListaPopoverItem } from './ListaPopover';
 import { getMateriaColor as getColorMateria } from '../utils/colores';
 import { obtenerClaveEjercicioCuestionario } from '../utils/ejercicios';
 import { formatAccessLabel, formatCallTypeLabel, formatExerciseTypeLabel, formatModelLabel, formatQuotaLabel, formatScaleLabel } from '../utils/metadata';
+import { normalizarPrograma } from '../utils/parser';
 
 export interface FiltroTabla {
     materias?: string[];
@@ -22,6 +23,13 @@ interface ResumenProps {
 }
 
 type PopoverTipo = 'materias' | 'bloques' | 'temas' | 'aplicaciones';
+
+const COLORES_RESPUESTA: Record<string, string> = {
+    A: '#3b82f6',
+    B: '#10b981',
+    C: '#f59e0b',
+    D: '#8b5cf6',
+};
 
 export const Resumen: React.FC<ResumenProps> = ({ preguntas, onVerEjercicio, onFiltrarYVerTabla }) => {
     // ——— Popover activo para KPIs listables ———
@@ -57,7 +65,7 @@ export const Resumen: React.FC<ResumenProps> = ({ preguntas, onVerEjercicio, onF
     const bloquesUnicos = useMemo(() => new Set(preguntas.map(p => p.bloque).filter(b => b && b.trim() !== '')).size, [preguntas]);
     const temasUnicos = useMemo(() => new Set(preguntas.map(p => p.tema).filter(t => t && t.trim() !== '')).size, [preguntas]);
     const aplicacionesUnicas = useMemo(() => new Set(
-        preguntas.map(p => p.aplicacion ? p.aplicacion.replace(/\s*\b\d+.*$/i, '').trim() : '')
+        preguntas.map(p => normalizarPrograma(p.aplicacion))
             .filter(a => a && a !== '')
     ).size, [preguntas]);
 
@@ -187,7 +195,8 @@ export const Resumen: React.FC<ResumenProps> = ({ preguntas, onVerEjercicio, onF
     const distribucionAplicaciones = useMemo(() => {
         const conteo: Record<string, number> = {};
         preguntas.forEach(p => {
-            const app = p.aplicacion ? p.aplicacion.replace(/\s*\b\d+.*$/i, '').trim() : '(sin aplicación)';
+            const app = normalizarPrograma(p.aplicacion);
+            if (!app) return;
             conteo[app] = (conteo[app] || 0) + 1;
         });
         return Object.entries(conteo)
@@ -213,7 +222,7 @@ export const Resumen: React.FC<ResumenProps> = ({ preguntas, onVerEjercicio, onF
 
         const esperado = total / 4;
         const sesgos: string[] = [];
-        const colores = { A: '#3b82f6', B: '#10b981', C: '#f59e0b', D: '#8b5cf6' };
+        const maxCount = Math.max(...Object.values(conteo), 1);
 
         const datos = Object.entries(conteo).map(([letra, count]) => {
             const pct = total > 0 ? ((count / total) * 100).toFixed(1) : '0';
@@ -221,7 +230,7 @@ export const Resumen: React.FC<ResumenProps> = ({ preguntas, onVerEjercicio, onF
             if (desviacion > 0.15) {
                 sesgos.push(`${letra}: ${pct}% (${count > esperado ? 'más frecuente' : 'menos frecuente'})`);
             }
-            return { letra, count, pct, color: colores[letra as keyof typeof colores] || '#6b7280' };
+            return { letra, count, pct, columnHeight: (count / maxCount) * 100, color: COLORES_RESPUESTA[letra] };
         });
 
         return { datos, total, sesgos };
@@ -246,7 +255,7 @@ export const Resumen: React.FC<ResumenProps> = ({ preguntas, onVerEjercicio, onF
             const m = p.materia.toString();
             const b = p.bloque || '(sin bloque)';
             const t = p.tema || '(sin tema)';
-            const a = p.aplicacion ? p.aplicacion.replace(/\s*\b\d+.*$/i, '').trim() : '(sin aplicación)';
+            const a = normalizarPrograma(p.aplicacion) || '(sin aplicación)';
 
             porAñoMateri[año][m] = (porAñoMateri[año][m] || 0) + 1;
             porAñoBloque[año][b] = (porAñoBloque[año][b] || 0) + 1;
@@ -266,7 +275,7 @@ export const Resumen: React.FC<ResumenProps> = ({ preguntas, onVerEjercicio, onF
             materiasSet.add(p.materia.toString());
             bloquesSet.add(p.bloque || '(sin bloque)');
             temasSet.add(p.tema || '(sin tema)');
-            appsSet.add(p.aplicacion ? p.aplicacion.replace(/\s*\b\d+.*$/i, '').trim() : '(sin aplicación)');
+            appsSet.add(normalizarPrograma(p.aplicacion) || '(sin aplicación)');
         });
 
         const tendenciasGlobales: Record<string, { tipo: string, nombre: string, cambio: string, tendencia: 'up' | 'down' | 'stable', mediaReciente: string, mediaAntigua: string }> = {};
@@ -330,7 +339,7 @@ export const Resumen: React.FC<ResumenProps> = ({ preguntas, onVerEjercicio, onF
     const listaAplicacionesCompleta = useMemo(() => {
         const c: Record<string, number> = {};
         preguntas.forEach(p => {
-            const a = p.aplicacion ? p.aplicacion.replace(/\s*\b\d+.*$/i, '').trim() : '';
+            const a = normalizarPrograma(p.aplicacion);
             if (a) c[a] = (c[a] || 0) + 1;
         });
         return Object.entries(c).sort((a, b) => b[1] - a[1]).map(([label, count]) => ({ label, count }));
@@ -414,7 +423,7 @@ export const Resumen: React.FC<ResumenProps> = ({ preguntas, onVerEjercicio, onF
                     { id: 'sec-ejercicios', label: 'Ejercicios', icon: <Layers className="w-3.5 h-3.5" /> },
                     { id: 'sec-materias', label: 'Materias', icon: <PieChart className="w-3.5 h-3.5" /> },
                     { id: 'sec-frecuencias', label: 'Frecuencias', icon: <BarChart3 className="w-3.5 h-3.5" /> },
-                    { id: 'sec-patron', label: 'Patrones', icon: <Zap className="w-3.5 h-3.5" /> },
+                    { id: 'sec-patron', label: 'Respuestas', icon: <Zap className="w-3.5 h-3.5" /> },
                     { id: 'sec-tendencias', label: 'Tendencias', icon: <TrendingUp className="w-3.5 h-3.5" /> },
                 ].map(s => (
                     <a key={s.id} href={`#${s.id} `}
@@ -680,23 +689,48 @@ export const Resumen: React.FC<ResumenProps> = ({ preguntas, onVerEjercicio, onF
                     </div>
                 )}
 
-                {/* ════ Patrón de respuestas correctas ════ */}
+                {/* ════ Distribución de respuestas correctas ════ */}
                 {distribucionRespuestas.total > 0 && (
-                    <div className={distribucionRespuestas.sesgos.length > 0 ? 'stat-insight' : 'bg-card border rounded-xl p-6'} style={distribucionRespuestas.sesgos.length === 0 ? { borderColor: 'var(--border-secondary)' } : undefined}>
+                    <div id="sec-patron" className={distribucionRespuestas.sesgos.length > 0 ? 'stat-insight' : 'bg-card border rounded-xl p-6'} style={distribucionRespuestas.sesgos.length === 0 ? { borderColor: 'var(--border-secondary)' } : undefined}>
                         <div className="flex items-center gap-2 mb-3">
                             <AlertCircle className="w-5 h-5" />
-                            <h3 className="font-bold text-lg">Patrón en respuestas correctas</h3>
+                            <h3 className="font-bold text-lg">Distribución de respuestas correctas</h3>
                         </div>
                         {distribucionRespuestas.sesgos.length > 0 && (
                             <p className="text-sm opacity-90 mb-3">Se detecta desviación de la distribución uniforme esperada</p>
                         )}
-                        <div className="flex items-center gap-4 flex-wrap">
+                        <div className="flex items-end gap-8 flex-wrap">
                             {distribucionRespuestas.datos.map(d => (
-                                <div key={d.letra} className="flex items-center gap-2">
-                                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm" style={{ backgroundColor: d.color }}>
-                                        {d.letra}
+                                <div key={d.letra} className="flex items-end gap-3" aria-label={`Respuesta ${d.letra}: ${d.pct}% (${d.count})`}>
+                                    <div
+                                        aria-hidden="true"
+                                        style={{
+                                            width: '38px',
+                                            height: '92px',
+                                            backgroundColor: 'var(--bg-secondary)',
+                                            display: 'flex',
+                                            alignItems: 'flex-end',
+                                            overflow: 'hidden',
+                                        }}
+                                    >
+                                        <div
+                                            style={{
+                                                width: '100%',
+                                                height: `${d.columnHeight}%`,
+                                                minHeight: d.count > 0 ? '26px' : 0,
+                                                backgroundColor: d.color,
+                                                color: '#ffffff',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                fontSize: '14px',
+                                                fontWeight: 800,
+                                            }}
+                                        >
+                                            {d.letra}
+                                        </div>
                                     </div>
-                                    <div>
+                                    <div className="mb-1">
                                         <span className="text-sm font-bold">{d.pct}%</span>
                                         <span className="text-xs opacity-75 ml-1">({d.count})</span>
                                     </div>

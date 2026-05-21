@@ -4,6 +4,7 @@ import { detectarDuplicados } from './similarity';
 import { generarInsights } from './estadisticas';
 import { obtenerClaveEjercicioCuestionario, obtenerEtiquetaEjercicioCuestionario } from './ejercicios';
 import { formatAccessLabel, formatCallTypeLabel, formatExerciseTypeLabel, formatModelLabel, formatQuotaLabel, formatScaleLabel } from './metadata';
+import { normalizarPrograma } from './parser';
 
 /**
  * Genera un informe analítico completo del dataset en formato Markdown.
@@ -32,7 +33,7 @@ export function generarInformeMarkdown(
     const fmtTipoConvocatoria = (v: string) => formatCallTypeLabel(v, 'short');
     const fmtAcceso = (v: string) => formatAccessLabel(v, 'short');
     const fmtTipo = (v: string) => formatExerciseTypeLabel(v);
-    const limpiarAplicacion = (a?: string) => a ? a.replace(/\s*\b\d+.*$/i, '').trim() : '';
+    const limpiarAplicacion = (a?: string) => normalizarPrograma(a || '');
     const total = preguntas.length;
     const pct = (n: number) => total > 0 ? (n / total * 100).toFixed(1) : '0.0';
 
