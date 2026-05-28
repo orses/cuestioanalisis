@@ -352,3 +352,72 @@ La pestaña `Comparativa` podía mostrar organismos iguales con colores distinto
 - La primera entrada a una vista diferida puede tener una espera breve de carga del chunk correspondiente.
 - `BarChart` sigue siendo el chunk diferido más grande por la dependencia de gráficas; no bloquea el arranque inicial.
 - La normalización de programas conserva el nombre histórico `normalizarPrograma` para evitar una migración amplia de dominio en esta microfase.
+
+## 2026-05-28 — Colores corporativos por organismo en comparativa
+
+### Qué se ha cambiado
+
+- `Comparativa` deja de usar una paleta categórica genérica para el borde izquierdo de las convocatorias cuando el organismo tiene color corporativo documentado.
+- Se crea `organismBrandColors.ts` con un registro explícito de colores por organismo, normalización de claves y fallback estable para organismos no documentados.
+- Se corrige la normalización de organismos con abreviaturas, acentos y partículas administrativas, como `Ayuntamiento de Ávila`.
+- Se amplían las pruebas de `Comparativa` para verificar que INAP y SERGAS reciben el color de marca esperado.
+- Se añaden pruebas unitarias específicas para normalización, colores conocidos, grado de confianza de las fuentes y fallback.
+
+### Por qué se ha cambiado
+
+El color del borde izquierdo en el selector de convocatorias estaba resolviendo una identidad visual interna, no la identidad real del organismo. Esto era insuficiente para organismos con colores corporativos reconocibles, como INAP, Xunta, UDC, SESCAM, JCCM, Aragón o Comunidad de Madrid.
+
+### Contrato vigente
+
+- Si el organismo tiene color corporativo registrado, `Comparativa` debe usar exactamente ese color para su borde izquierdo.
+- La normalización debe igualar variantes con acentos, mayúsculas, separadores y fórmulas largas de ayuntamiento.
+- Si un organismo no tiene fuente cromática suficientemente documentada, debe conservar un fallback categórico estable y no semántico.
+- Cada color registrado debe indicar su grado de confianza:
+  - `official-value`, cuando la fuente oficial publica valor RGB, WEB, HEX o equivalente directo;
+  - `official-pantone`, cuando la fuente oficial publica Pantone y se aplica una conversión web razonable;
+  - `official-logo`, cuando la fuente oficial solo publica o referencia el logotipo y el color se aproxima desde esa identidad visual.
+
+### Colores registrados
+
+- INAP: `#F2C300`, aproximado desde el logotipo institucional.
+- Xunta y SERGAS: `#007BC4`, azul corporativo Xunta, Pantone 7461 C.
+- UDC: `#C3267D`, fucsia UDC, Pantone 233 CVC.
+- JCCM: `#E51A4C`, rojo carmesí de la marca Castilla-La Mancha, Pantone 1925 C.
+- SESCAM: `#012169`, conversión web de Pantone 280.
+- Junta de Extremadura: `#00A651`, conversión web de Pantone 354.
+- Aragón: `#FCE100`, amarillo corporativo, Pantone 109.
+- Navarra: `#DA291C`, conversión web de Pantone 485.
+- Comunidad de Madrid: `#FF0000`, HTML corporativo publicado para Pantone 032.
+- UCM: `#000000`, logotipo oficial en negro.
+- Ayuntamiento de Ávila: `#B21F2D`, aproximado desde la imagen institucional localizada.
+
+### Fuentes cromáticas consultadas
+
+- INAP: página oficial de uso del logotipo institucional.
+- Xunta: manual de identidad corporativa, color principal `#007BC4`, Pantone 7461 C.
+- UDC: página de identidad corporativa de la ETS de Náutica y Máquinas, fucsia `#C3267D`.
+- SERGAS: instrucciones de publicaciones, que remiten al manual de identidad corporativa de la Xunta.
+- JCCM: manual de marca resumido de Castilla-La Mancha, rojo carmesí `#E51A4C`.
+- SESCAM: manual de identidad corporativa, versión a una tinta Pantone 280.
+- Junta de Extremadura: manual de identidad corporativa, verde Pantone 354.
+- Aragón: documento oficial de señalización de obras públicas, amarillo `#FCE100`.
+- Navarra: decreto foral del símbolo oficial, rojo Pantone 485.
+- Comunidad de Madrid: manual de identidad corporativa, HTML `#FF0000`.
+- UCM: página oficial de logos de la Biblioteca Complutense, logotipo en negro.
+
+### Pruebas y verificaciones
+
+- `npm run test -- Comparativa organismBrandColors colorPalettes`: 3 archivos de prueba, 9 pruebas superadas.
+- `npm run test`: 22 archivos de prueba, 71 pruebas superadas.
+- `npm run verify`: correcto.
+- `security:check`: correcto.
+- `npm audit` producción y completo: 0 vulnerabilidades.
+- `npm run lint`: correcto.
+- `npm run build`: correcto.
+
+### Riesgos, límites y pendientes
+
+- Algunas administraciones publican Pantone o logotipo, pero no HEX; esos casos quedan marcados con `official-pantone` u `official-logo`.
+- El color de INAP y el del Ayuntamiento de Ávila dependen de aproximación visual desde fuente oficial, por ausencia de equivalencia HEX pública en texto.
+- Ayuntamiento de Cenes de la Vega conserva fallback hasta localizar una fuente cromática institucional sólida.
+- Si se incorporan nuevos organismos, deberán añadirse al registro con fuente y grado de confianza antes de considerarlos corporativos.

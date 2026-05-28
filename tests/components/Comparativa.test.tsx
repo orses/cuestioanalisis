@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { Comparativa } from '../../src/components/Comparativa';
+import { getOrganismBrandColor } from '../../src/utils/organismBrandColors';
 import { createQuestion } from '../fixtures/questions';
 
 describe('Comparativa', () => {
@@ -38,5 +39,7 @@ describe('Comparativa', () => {
         expect(sergasCard).toBeDefined();
         expect((inapCards[0] as HTMLElement).style.borderLeft).toBe((inapCards[1] as HTMLElement).style.borderLeft);
         expect((sergasCard as HTMLElement).style.borderLeft).not.toBe((inapCards[0] as HTMLElement).style.borderLeft);
+        expect(inapCards[0]).toHaveStyle({ borderLeft: `4px solid ${getOrganismBrandColor('INAP')}` });
+        expect(sergasCard).toHaveStyle({ borderLeft: `4px solid ${getOrganismBrandColor('SERGAS')}` });
     });
 });

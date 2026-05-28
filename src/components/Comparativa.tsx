@@ -3,10 +3,9 @@ import type { Pregunta } from '../types';
 import { generarComparativa } from '../utils/analytics';
 import {
     ANSWER_DISTRIBUTION_COLORS,
-    buildCategoricalColorMap,
-    COMPARISON_GROUP_COLORS,
     COMPARISON_SERIES_COLORS,
 } from '../utils/colorPalettes';
+import { buildOrganismBrandColorMap } from '../utils/organismBrandColors';
 import { GitCompare, Check } from 'lucide-react';
 import {
     ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Bar, LabelList,
@@ -150,7 +149,7 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
     };
 
     const organismColorMap = useMemo(
-        () => buildCategoricalColorMap(datos.map(d => d.organismo), COMPARISON_GROUP_COLORS),
+        () => buildOrganismBrandColorMap(datos.map(d => d.organismo)),
         [datos]
     );
 
