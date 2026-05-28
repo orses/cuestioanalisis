@@ -527,3 +527,35 @@ La pantalla de comparativa seguía teniendo demasiado ruido visual: demasiada ne
 - La regla global de radio utiliza `!important` para imponerse a clases Tailwind e inline styles existentes; si una futura vista necesita radios distintos, deberá justificar una excepción explícita.
 - El tono claro del organismo se calcula para colores HEX. Si el color no es HEX, se usa el fondo terciario como fallback.
 - No se ha ejecutado `npm run verify` en esta microfase; se han ejecutado la prueba focalizada y la suite completa de Vitest.
+
+## 2026-05-28 - Selección sobria en tarjetas de comparativa
+
+### Qué se ha cambiado
+
+- Se ha eliminado el contorno azul de las tarjetas seleccionadas en `Comparativa`.
+- Se ha eliminado la sombra azul que reforzaba visualmente la selección.
+- La tarjeta seleccionada usa ahora un fondo neutro `var(--bg-tertiary)`.
+- Se mantiene el tic de selección y el borde izquierdo corporativo del organismo.
+- La prueba focalizada de `Comparativa` valida que la selección no vuelve a usar borde ni sombra de acento azul.
+
+### Por qué se ha cambiado
+
+El estado seleccionado resultaba demasiado basto por la suma de contorno azul, sombra y fondo activo. La interfaz necesitaba una jerarquía más contenida para que la lectura de convocatorias no quedase dominada por el estado visual de selección.
+
+### Contrato vigente
+
+- La selección de una tarjeta debe indicarse con el tic de la casilla y con un fondo neutro.
+- Las tarjetas seleccionadas no deben usar `var(--accent-primary)` en el contorno superior, derecho o inferior.
+- Las tarjetas seleccionadas no deben usar sombra de selección azul.
+- El borde izquierdo debe seguir representando el organismo, tanto si la tarjeta está seleccionada como si no.
+- El badge textual `Seleccionada` sigue sin mostrarse.
+
+### Pruebas y verificaciones
+
+- `npm run test -- tests/components/Comparativa.test.tsx`: 1 archivo de prueba, 6 pruebas superadas.
+- `npm run test`: 23 archivos de prueba, 77 pruebas superadas.
+
+### Riesgos, límites y pendientes
+
+- La selección queda más discreta; si en pruebas de uso se detecta poca visibilidad, deberá reforzarse con una señal neutra, no con borde ni sombra azul.
+- No se ha ejecutado `npm run verify` en esta microfase; se han ejecutado la prueba focalizada y la suite completa de Vitest.

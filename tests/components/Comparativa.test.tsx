@@ -228,7 +228,13 @@ describe('Comparativa', () => {
         expect(card).toHaveAttribute('aria-pressed', 'true');
         expect(card).toHaveAttribute('data-selected', 'true');
         expect(screen.queryByText('Seleccionada')).not.toBeInTheDocument();
-        expect(card.style.boxShadow).toContain('var(--accent-primary)');
+        const selectedCardStyle = card.getAttribute('style');
+        expect(selectedCardStyle).toContain('border-top: 1px solid var(--border-secondary)');
+        expect(selectedCardStyle).toContain('border-right: 1px solid var(--border-secondary)');
+        expect(selectedCardStyle).toContain('border-bottom: 1px solid var(--border-secondary)');
+        expect(selectedCardStyle).toContain('background-color: var(--bg-tertiary)');
+        expect(selectedCardStyle).toContain('box-shadow: none');
+        expect(selectedCardStyle).not.toContain('box-shadow: 0 0 0 2px var(--accent-primary)');
     });
 
     it('mantiene el límite de cuatro convocatorias seleccionadas', () => {
