@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { Comparativa } from '../../src/components/Comparativa';
 import { getOrganismBrandColor } from '../../src/utils/organismBrandColors';
@@ -116,7 +116,7 @@ describe('Comparativa', () => {
         ]);
     });
 
-    it('permite elegir cuántas tarjetas se muestran por fila', () => {
+    it('permite elegir alta densidad de tarjetas por fila', () => {
         render(
             <Comparativa
                 preguntas={[
@@ -128,19 +128,26 @@ describe('Comparativa', () => {
 
         const grid = screen.getByTestId('comparison-exercise-grid');
         const threeCardsButton = screen.getByRole('button', { name: '3 tarjetas por fila' });
-        const fourCardsButton = screen.getByRole('button', { name: '4 tarjetas por fila' });
+        const sixCardsButton = screen.getByRole('button', { name: '6 tarjetas por fila' });
+        const eightCardsButton = screen.getByRole('button', { name: '8 tarjetas por fila' });
 
         expect(grid).toHaveStyle({ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' });
         expect(threeCardsButton).toHaveAttribute('aria-pressed', 'true');
 
-        fireEvent.click(fourCardsButton);
+        fireEvent.click(eightCardsButton);
 
-        expect(grid).toHaveStyle({ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' });
-        expect(fourCardsButton).toHaveAttribute('aria-pressed', 'true');
+        expect(grid).toHaveStyle({ gridTemplateColumns: 'repeat(8, minmax(0, 1fr))', minWidth: '1256px' });
+        expect(eightCardsButton).toHaveAttribute('aria-pressed', 'true');
         expect(threeCardsButton).toHaveAttribute('aria-pressed', 'false');
+
+        fireEvent.click(sixCardsButton);
+
+        expect(grid).toHaveStyle({ gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', minWidth: '940px' });
+        expect(sixCardsButton).toHaveAttribute('aria-pressed', 'true');
+        expect(eightCardsButton).toHaveAttribute('aria-pressed', 'false');
     });
 
-    it('muestra la información sin truncado y marca claramente la tarjeta seleccionada', () => {
+    it('muestra badges compactos sin rótulo visible y marca claramente la tarjeta seleccionada', () => {
         render(
             <Comparativa
                 preguntas={[
@@ -163,17 +170,27 @@ describe('Comparativa', () => {
         );
 
         const card = getCards()[0];
+        const cardScope = within(card);
         const title = screen.getByTestId('comparison-exercise-title');
+        const organismBadge = screen.getByTestId('comparison-metadata-badge-organism');
 
         expect(title).toHaveTextContent('C0001 - convocatoria_muy_larga_para_comprobar_lectura_completa');
         expect(title).toHaveStyle({ overflowWrap: 'anywhere', whiteSpace: 'normal' });
-        expect(screen.getByText('Organismo')).toBeInTheDocument();
-        expect(screen.getByText('Escala')).toBeInTheDocument();
-        expect(screen.getByText('Auxiliar')).toBeInTheDocument();
-        expect(screen.getByText('Acceso')).toBeInTheDocument();
-        expect(screen.getByText('Libre')).toBeInTheDocument();
-        expect(screen.getByText('Modelo')).toBeInTheDocument();
-        expect(screen.getByText('A')).toBeInTheDocument();
+        expect(cardScope.queryByText('Organismo')).not.toBeInTheDocument();
+        expect(cardScope.queryByText('Escala')).not.toBeInTheDocument();
+        expect(cardScope.queryByText('Acceso')).not.toBeInTheDocument();
+        expect(cardScope.getByText('INAP')).toBeInTheDocument();
+        expect(cardScope.getByText('Auxiliar')).toBeInTheDocument();
+        expect(cardScope.getByText('2024')).toBeInTheDocument();
+        expect(cardScope.getByText('Libre')).toBeInTheDocument();
+        expect(cardScope.getByText('A')).toBeInTheDocument();
+        expect(organismBadge).toHaveAttribute('data-label', 'Organismo');
+        expect(organismBadge).toHaveAttribute('title', 'Organismo: INAP');
+        expect(organismBadge).toHaveStyle({
+            backgroundColor: getOrganismBrandColor('INAP'),
+            borderColor: getOrganismBrandColor('INAP'),
+            color: '#0f172a',
+        });
 
         fireEvent.click(card);
 

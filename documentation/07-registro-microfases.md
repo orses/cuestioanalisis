@@ -456,3 +456,38 @@ El selector de comparativa dificultaba la lectura de convocatorias porque compri
 - En pantallas estrechas, elegir muchas tarjetas por fila puede activar desplazamiento horizontal; es intencionado para respetar el número de columnas elegido por el usuario.
 - El orden de escalas queda codificado para `AUX`, `ADV` y `PSX`; si se incorporan nuevas escalas con orden de negocio específico, habrá que añadirlas al contrato.
 - No se ha ejecutado `npm run verify` en esta microfase; las verificaciones realizadas cubren la prueba focalizada y la suite completa de Vitest.
+
+## 2026-05-28 - Densidad alta en tarjetas de comparativa
+
+### Qué se ha cambiado
+
+- El selector `Tarjetas por fila` admite ahora 6 y 8 tarjetas, además de las opciones existentes.
+- Se han compactado las tarjetas de convocatoria reduciendo altura mínima, márgenes internos, separación y tamaño de los chips.
+- Los chips de metadatos dejan de mostrar el rótulo visible y muestran solo el valor, por ejemplo `INAP`, `Auxiliar`, `2024` o `Libre`.
+- Cada chip conserva su significado mediante `title` y `data-label`, para que el contrato de datos siga siendo explícito en pruebas y herramientas.
+- El chip de organismo utiliza como fondo el mismo color que el borde izquierdo de la tarjeta y calcula un color de texto legible según la luminancia.
+- Se han actualizado las pruebas focalizadas para cubrir las opciones de 6 y 8 tarjetas, los chips sin rótulo visible y el color corporativo del chip de organismo.
+
+### Por qué se ha cambiado
+
+La vista seguía siendo demasiado densa y poco manejable con cinco tarjetas por fila porque cada chip repetía rótulos como `Organismo`, `Escala` o `Acceso`. Al eliminar esos rótulos visibles y usar el color del organismo como señal de grupo, la tarjeta conserva la información clave con menos ruido visual y permite trabajar con disposiciones de 6 u 8 columnas.
+
+### Contrato vigente
+
+- `Tarjetas por fila` debe ofrecer exactamente las opciones `1`, `2`, `3`, `4`, `5`, `6` y `8`.
+- Los chips visibles de metadatos deben mostrar solo el valor, no el rótulo.
+- El rótulo semántico de cada chip debe conservarse en `title` y `data-label`.
+- El chip de organismo debe reutilizar el mismo color resuelto para el borde izquierdo de la tarjeta.
+- El texto del chip de organismo debe ser claro u oscuro en función de la luminancia del color de fondo.
+- El límite de selección sigue siendo de cuatro convocatorias.
+
+### Pruebas y verificaciones
+
+- `npm run test -- tests/components/Comparativa.test.tsx`: 1 archivo de prueba, 5 pruebas superadas.
+- `npm run test`: 22 archivos de prueba, 75 pruebas superadas.
+
+### Riesgos, límites y pendientes
+
+- En 8 columnas, los organismos con nombres largos pueden ocupar varias líneas dentro del chip; se prioriza no ocultar información.
+- El cálculo de contraste se aplica a colores HEX. Si un organismo usa un color CSS no HEX como fallback, el texto usa `var(--text-primary)`.
+- No se ha ejecutado `npm run verify` en esta microfase; se han ejecutado la prueba focalizada y la suite completa de Vitest.

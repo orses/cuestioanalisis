@@ -27,8 +27,32 @@ interface ComparativaProps {
 
 type AgrupacionComparativa = 'materias' | 'bloques' | 'temas' | 'programas';
 type ChartRow = Record<string, string | number> & { name: string; _total: number };
-const TARJETAS_POR_FILA = [1, 2, 3, 4, 5] as const;
+const TARJETAS_POR_FILA = [1, 2, 3, 4, 5, 6, 8] as const;
 type TarjetasPorFila = typeof TARJETAS_POR_FILA[number];
+
+type MetadataBadge = {
+    key: string;
+    label: string;
+    value: string;
+    tone?: 'organism' | 'default';
+};
+
+function getReadableTextColor(backgroundColor: string): string {
+    const hex = backgroundColor.trim();
+    const match = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(hex);
+
+    if (!match) return 'var(--text-primary)';
+
+    const normalized = match[1].length === 3
+        ? match[1].split('').map(char => `${char}${char}`).join('')
+        : match[1];
+    const red = parseInt(normalized.slice(0, 2), 16);
+    const green = parseInt(normalized.slice(2, 4), 16);
+    const blue = parseInt(normalized.slice(4, 6), 16);
+    const luminance = (0.299 * red + 0.587 * green + 0.114 * blue) / 255;
+
+    return luminance > 0.58 ? '#0f172a' : '#ffffff';
+}
 
 export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
     const datos = useMemo(() => generarComparativa(preguntas), [preguntas]);
@@ -166,7 +190,7 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
     );
 
     const getOrganismColor = (organismo: string) => organismColorMap.get(organismo) || 'var(--border-primary)';
-    const minGridWidth = tarjetasPorFila === 1 ? '0' : `${tarjetasPorFila * 220 + (tarjetasPorFila - 1) * 12}px`;
+    const minGridWidth = tarjetasPorFila === 1 ? '0' : `${tarjetasPorFila * 150 + (tarjetasPorFila - 1) * 8}px`;
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -249,18 +273,18 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
                             const sel = seleccionados.includes(d.ejercicio);
                             const disabled = !sel && seleccionados.length >= 4;
                             const organismColor = getOrganismColor(d.organismo);
-                            const metadataItems = [
-                                { label: 'Organismo', value: d.organismo },
-                                { label: 'Escala', value: formatScaleLabel(d.escala, 'short') },
-                                { label: 'Año', value: d.año > 0 ? String(d.año) : 'Sin año' },
-                                { label: 'Acceso', value: formatAccessLabel(d.acceso, 'short') },
-                                d.tipoConvocatoria ? { label: 'Conv.', value: formatCallTypeLabel(d.tipoConvocatoria, 'short') } : null,
-                                d.cupo ? { label: 'Cupo', value: formatQuotaLabel(d.cupo) } : null,
-                                d.tipo ? { label: 'Ejerc.', value: formatExerciseTypeLabel(d.tipo) } : null,
-                                d.modelo ? { label: 'Modelo', value: formatModelLabel(d.modelo) } : null,
-                                d.variante ? { label: 'Var.', value: formatVariantLabel(d.variante) } : null,
-                                { label: 'Preguntas', value: String(d.totalPreguntas) },
-                            ].filter((item): item is { label: string; value: string } => Boolean(item));
+                            const metadataItems: MetadataBadge[] = [
+                                { key: 'organism', label: 'Organismo', value: d.organismo, tone: 'organism' },
+                                { key: 'scale', label: 'Escala', value: formatScaleLabel(d.escala, 'short') },
+                                { key: 'year', label: 'Año', value: d.año > 0 ? String(d.año) : 'Sin año' },
+                                { key: 'access', label: 'Acceso', value: formatAccessLabel(d.acceso, 'short') },
+                                d.tipoConvocatoria ? { key: 'call-type', label: 'Tipo de convocatoria', value: formatCallTypeLabel(d.tipoConvocatoria, 'short') } : null,
+                                d.cupo ? { key: 'quota', label: 'Cupo', value: formatQuotaLabel(d.cupo) } : null,
+                                d.tipo ? { key: 'exercise-type', label: 'Tipo de ejercicio', value: formatExerciseTypeLabel(d.tipo) } : null,
+                                d.modelo ? { key: 'model', label: 'Modelo', value: formatModelLabel(d.modelo) } : null,
+                                d.variante ? { key: 'variant', label: 'Variante', value: formatVariantLabel(d.variante) } : null,
+                                { key: 'questions', label: 'Preguntas', value: String(d.totalPreguntas) },
+                            ].filter((item): item is MetadataBadge => Boolean(item));
 
                             return (
                                 <button
@@ -280,12 +304,12 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
                                     onClick={() => toggleSeleccion(d.ejercicio)}
                                     style={{
                                         width: '100%',
-                                        minHeight: '112px',
+                                        minHeight: '96px',
                                         display: 'grid',
-                                        gridTemplateColumns: '24px minmax(0, 1fr)',
+                                        gridTemplateColumns: '20px minmax(0, 1fr)',
                                         alignItems: 'start',
-                                        gap: '12px',
-                                        padding: '12px 14px',
+                                        gap: '8px',
+                                        padding: '9px 10px',
                                         borderRadius: '8px',
                                         borderTop: `1px solid ${sel ? 'var(--accent-primary)' : 'var(--border-secondary)'}`,
                                         borderRight: `1px solid ${sel ? 'var(--accent-primary)' : 'var(--border-secondary)'}`,
@@ -301,21 +325,21 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
                                     }}
                                 >
                                     <span style={{
-                                        width: '22px', height: '22px', borderRadius: '6px',
+                                        width: '20px', height: '20px', borderRadius: '6px',
                                         border: `2px solid ${sel ? 'var(--accent-primary)' : 'var(--border-primary)'}`,
                                         backgroundColor: sel ? 'var(--accent-primary)' : 'transparent',
                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                                         flexShrink: 0, transition: 'all 0.2s ease'
                                     }}>
-                                        {sel && <Check className="w-3.5 h-3.5" style={{ color: '#fff', strokeWidth: 3 }} />}
+                                        {sel && <Check className="w-3 h-3" style={{ color: '#fff', strokeWidth: 3 }} />}
                                     </span>
-                                    <span style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: 0 }}>
-                                        <span style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
+                                    <span style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: 0 }}>
+                                        <span style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '6px' }}>
                                             <span
                                                 data-testid="comparison-exercise-title"
                                                 title={d.ejercicio}
                                                 style={{
-                                                    fontSize: '13px',
+                                                    fontSize: '12px',
                                                     fontWeight: 800,
                                                     color: 'var(--text-primary)',
                                                     lineHeight: 1.35,
@@ -330,12 +354,12 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
                                                     data-testid="comparison-selected-badge"
                                                     style={{
                                                         flexShrink: 0,
-                                                        fontSize: '10px',
+                                                        fontSize: '9px',
                                                         fontWeight: 800,
                                                         color: '#fff',
                                                         backgroundColor: 'var(--accent-primary)',
                                                         borderRadius: '999px',
-                                                        padding: '2px 7px',
+                                                        padding: '1px 6px',
                                                         lineHeight: 1.4,
                                                     }}
                                                 >
@@ -343,29 +367,43 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
                                                 </span>
                                             )}
                                         </span>
-                                        <span style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
-                                            {metadataItems.map(item => (
-                                                <span
-                                                    key={`${item.label}-${item.value}`}
-                                                    style={{
-                                                        display: 'inline-flex',
-                                                        alignItems: 'center',
-                                                        gap: '4px',
-                                                        minHeight: '22px',
-                                                        maxWidth: '100%',
-                                                        padding: '2px 7px',
-                                                        borderRadius: '6px',
-                                                        border: '1px solid var(--border-secondary)',
-                                                        backgroundColor: sel ? 'var(--bg-secondary)' : 'var(--bg-tertiary)',
-                                                        color: 'var(--text-secondary)',
-                                                        fontSize: '11px',
-                                                        lineHeight: 1.25,
-                                                    }}
-                                                >
-                                                    <span style={{ fontWeight: 700, color: 'var(--text-tertiary)' }}>{item.label}</span>
-                                                    <span style={{ fontWeight: 700, overflowWrap: 'anywhere' }}>{item.value}</span>
-                                                </span>
-                                            ))}
+                                        <span style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                                            {metadataItems.map(item => {
+                                                const isOrganismBadge = item.tone === 'organism';
+                                                const badgeBackground = isOrganismBadge
+                                                    ? organismColor
+                                                    : sel ? 'var(--bg-secondary)' : 'var(--bg-tertiary)';
+                                                const badgeColor = isOrganismBadge
+                                                    ? getReadableTextColor(organismColor)
+                                                    : 'var(--text-secondary)';
+
+                                                return (
+                                                    <span
+                                                        key={`${item.key}-${item.value}`}
+                                                        data-testid={`comparison-metadata-badge-${item.key}`}
+                                                        data-label={item.label}
+                                                        title={`${item.label}: ${item.value}`}
+                                                        style={{
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            minHeight: '19px',
+                                                            maxWidth: '100%',
+                                                            padding: '1px 6px',
+                                                            borderRadius: '6px',
+                                                            border: `1px solid ${isOrganismBadge ? organismColor : 'var(--border-secondary)'}`,
+                                                            backgroundColor: badgeBackground,
+                                                            color: badgeColor,
+                                                            fontSize: '10.5px',
+                                                            fontWeight: 800,
+                                                            lineHeight: 1.25,
+                                                            overflowWrap: 'anywhere',
+                                                            whiteSpace: 'normal',
+                                                        }}
+                                                    >
+                                                        {item.value}
+                                                    </span>
+                                                );
+                                            })}
                                         </span>
                                     </span>
                                 </button>
