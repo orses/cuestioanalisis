@@ -592,3 +592,42 @@ Algunos colores corporativos intensos, especialmente rojos como CAM o AYTO ÁVIL
 - La comprobación de contraste toma como superficie base el fondo claro de tarjeta `#f8fafc`.
 - Si se rediseña el modo oscuro, habrá que revisar el contraste del badge sobre superficies oscuras.
 - No se ha ejecutado `npm run verify` en esta microfase; se han ejecutado la prueba focalizada y la suite completa de Vitest.
+
+## 2026-05-28 - Vista lista ordenable en comparativa
+
+### Qué se ha cambiado
+
+- Se ha añadido el selector de vista `Tarjetas` / `Lista` en `Comparativa`.
+- La vista elegida se persiste en `localStorage` con la clave `comparativa.viewMode`.
+- Se ha añadido una tabla de convocatorias comparables con columnas ordenables.
+- La ordenación de lista se persiste en `localStorage` con la clave `comparativa.listSort`.
+- La lista permite ordenar por organismo, escala, año, acceso, tipo de convocatoria, ejercicio, modelo, preguntas y etiqueta de convocatoria.
+- La selección desde la lista usa casillas nativas y mantiene el límite máximo de cuatro convocatorias.
+- Se ha añadido la acción `Orden base` para volver al orden de dominio original.
+
+### Por qué se ha cambiado
+
+La vista por tarjetas es útil para lectura visual, pero deja de ser manejable cuando hay muchas convocatorias y se necesita comparar por organismo, escala, año, acceso o ejercicio. La vista lista permite escanear más filas, ordenar por campos concretos y conservar la preferencia al moverse por pestañas.
+
+### Contrato vigente
+
+- La vista por defecto sigue siendo `Tarjetas`.
+- La preferencia de vista debe restaurarse al volver a montar `Comparativa`.
+- La vista `Lista` debe ocultar el control `Tarjetas por fila`.
+- La lista debe ofrecer cabeceras ordenables con estado `aria-sort`.
+- Al pulsar una cabecera por primera vez, la ordenación debe ser ascendente; al repetir, descendente.
+- La ordenación persistida debe restaurarse junto con la vista lista.
+- La selección desde tarjetas y desde lista comparte el mismo estado y el mismo límite de cuatro convocatorias.
+
+### Pruebas y verificaciones
+
+- `npm run test -- tests/components/Comparativa.test.tsx`: 1 archivo de prueba, 10 pruebas superadas.
+- `npm run test`: 23 archivos de prueba, 81 pruebas superadas.
+- `npm run build`: correcto.
+- `npm run lint`: correcto.
+
+### Riesgos, límites y pendientes
+
+- La tabla usa desplazamiento horizontal cuando no hay ancho suficiente para todas las columnas.
+- La ordenación `Orden base` depende del contrato de orden de `generarComparativa`.
+- No se ha ejecutado `npm run verify`; se han ejecutado prueba focalizada, suite completa, build y lint.

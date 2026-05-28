@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Pregunta } from '../types';
-import { generarComparativa } from '../utils/analytics';
+import { generarComparativa, type ComparativaData } from '../utils/analytics';
 import {
     ANSWER_DISTRIBUTION_COLORS,
     COMPARISON_SERIES_COLORS,
@@ -30,6 +30,41 @@ type ChartRow = Record<string, string | number> & { name: string; _total: number
 const TARJETAS_POR_FILA = [1, 2, 3, 4, 5, 6, 8] as const;
 type TarjetasPorFila = typeof TARJETAS_POR_FILA[number];
 const TARJETAS_POR_FILA_STORAGE_KEY = 'comparativa.tarjetasPorFila';
+const COMPARISON_VIEW_MODE_STORAGE_KEY = 'comparativa.viewMode';
+const LIST_SORT_STORAGE_KEY = 'comparativa.listSort';
+
+type ComparisonViewMode = 'cards' | 'list';
+type ListSortDirection = 'asc' | 'desc';
+type ListSortKey = 'base' | 'organism' | 'scale' | 'year' | 'access' | 'callType' | 'exerciseType' | 'model' | 'questions' | 'exercise';
+type SortableListSortKey = Exclude<ListSortKey, 'base'>;
+type ListSortState = {
+    key: ListSortKey;
+    direction: ListSortDirection;
+};
+type ListColumn = {
+    key: SortableListSortKey;
+    label: string;
+    align?: 'left' | 'right';
+    minWidth: number;
+};
+
+const DEFAULT_LIST_SORT: ListSortState = { key: 'base', direction: 'asc' };
+const LIST_COLUMNS: ListColumn[] = [
+    { key: 'organism', label: 'Organismo', minWidth: 120 },
+    { key: 'scale', label: 'Escala', minWidth: 96 },
+    { key: 'year', label: 'Año', align: 'right', minWidth: 72 },
+    { key: 'access', label: 'Acceso', minWidth: 88 },
+    { key: 'callType', label: 'Conv.', minWidth: 96 },
+    { key: 'exerciseType', label: 'Ejerc.', minWidth: 88 },
+    { key: 'model', label: 'Modelo', minWidth: 72 },
+    { key: 'questions', label: 'Preguntas', align: 'right', minWidth: 82 },
+    { key: 'exercise', label: 'Convocatoria', minWidth: 260 },
+];
+const SCALE_SORT_ORDER = new Map([
+    ['AUX', 0],
+    ['ADV', 1],
+    ['PSX', 2],
+]);
 
 type MetadataBadge = {
     key: string;
@@ -90,16 +125,120 @@ function getInitialTarjetasPorFila(): TarjetasPorFila {
     return isTarjetasPorFila(storedValue) ? storedValue : 3;
 }
 
+function isComparisonViewMode(value: string | null): value is ComparisonViewMode {
+    return value === 'cards' || value === 'list';
+}
+
+function getInitialComparisonViewMode(): ComparisonViewMode {
+    if (typeof window === 'undefined') return 'cards';
+
+    const storedValue = window.localStorage.getItem(COMPARISON_VIEW_MODE_STORAGE_KEY);
+    return isComparisonViewMode(storedValue) ? storedValue : 'cards';
+}
+
+function isListSortKey(value: unknown): value is ListSortKey {
+    return typeof value === 'string' && (
+        value === 'base'
+        || value === 'organism'
+        || value === 'scale'
+        || value === 'year'
+        || value === 'access'
+        || value === 'callType'
+        || value === 'exerciseType'
+        || value === 'model'
+        || value === 'questions'
+        || value === 'exercise'
+    );
+}
+
+function isListSortDirection(value: unknown): value is ListSortDirection {
+    return value === 'asc' || value === 'desc';
+}
+
+function getInitialListSort(): ListSortState {
+    if (typeof window === 'undefined') return DEFAULT_LIST_SORT;
+
+    try {
+        const storedValue = window.localStorage.getItem(LIST_SORT_STORAGE_KEY);
+        if (!storedValue) return DEFAULT_LIST_SORT;
+
+        const parsedValue = JSON.parse(storedValue) as Partial<ListSortState>;
+        if (isListSortKey(parsedValue.key) && isListSortDirection(parsedValue.direction)) {
+            return { key: parsedValue.key, direction: parsedValue.direction };
+        }
+    } catch {
+        return DEFAULT_LIST_SORT;
+    }
+
+    return DEFAULT_LIST_SORT;
+}
+
+function compareTextValue(a: string, b: string): number {
+    const normalizedA = (a || '').trim();
+    const normalizedB = (b || '').trim();
+
+    if (!normalizedA && normalizedB) return 1;
+    if (normalizedA && !normalizedB) return -1;
+
+    return normalizedA.localeCompare(normalizedB, 'es', {
+        numeric: true,
+        sensitivity: 'base',
+    });
+}
+
+function compareNumberValue(a: number, b: number): number {
+    if (!a && b) return 1;
+    if (a && !b) return -1;
+    return a - b;
+}
+
+function compareScaleValue(a: string, b: string): number {
+    const normalizedA = (a || '').trim().toLocaleUpperCase('es-ES');
+    const normalizedB = (b || '').trim().toLocaleUpperCase('es-ES');
+    const orderA = SCALE_SORT_ORDER.get(normalizedA);
+    const orderB = SCALE_SORT_ORDER.get(normalizedB);
+
+    if (orderA !== undefined && orderB !== undefined && orderA !== orderB) return orderA - orderB;
+    if (orderA !== undefined && orderB === undefined) return -1;
+    if (orderA === undefined && orderB !== undefined) return 1;
+
+    return compareTextValue(a, b);
+}
+
+function compareByListSortKey(a: ComparativaData, b: ComparativaData, key: ListSortKey): number {
+    if (key === 'organism') return compareTextValue(a.organismo, b.organismo);
+    if (key === 'scale') return compareScaleValue(a.escala, b.escala);
+    if (key === 'year') return compareNumberValue(a.año, b.año);
+    if (key === 'access') return compareTextValue(a.acceso, b.acceso);
+    if (key === 'callType') return compareTextValue(a.tipoConvocatoria, b.tipoConvocatoria);
+    if (key === 'exerciseType') return compareTextValue(a.tipo, b.tipo);
+    if (key === 'model') return compareTextValue(a.modelo, b.modelo);
+    if (key === 'questions') return compareNumberValue(a.totalPreguntas, b.totalPreguntas);
+    if (key === 'exercise') return compareTextValue(a.ejercicio, b.ejercicio);
+
+    return 0;
+}
+
 export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
     const datos = useMemo(() => generarComparativa(preguntas), [preguntas]);
     const [seleccionados, setSeleccionados] = useState<string[]>([]);
     const [vistaRadar, setVistaRadar] = useState(false);
     const [radarAgrupacion, setRadarAgrupacion] = useState<AgrupacionComparativa>('materias');
     const [tarjetasPorFila, setTarjetasPorFila] = useState<TarjetasPorFila>(getInitialTarjetasPorFila);
+    const [comparisonViewMode, setComparisonViewMode] = useState<ComparisonViewMode>(getInitialComparisonViewMode);
+    const [listSort, setListSort] = useState<ListSortState>(getInitialListSort);
 
     useEffect(() => {
         window.localStorage.setItem(TARJETAS_POR_FILA_STORAGE_KEY, String(tarjetasPorFila));
     }, [tarjetasPorFila]);
+
+    useEffect(() => {
+        window.localStorage.setItem(COMPARISON_VIEW_MODE_STORAGE_KEY, comparisonViewMode);
+    }, [comparisonViewMode]);
+
+    useEffect(() => {
+        window.localStorage.setItem(LIST_SORT_STORAGE_KEY, JSON.stringify(listSort));
+    }, [listSort]);
 
     const toggleSeleccion = (ej: string) => {
         setSeleccionados(prev =>
@@ -109,10 +248,31 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
         );
     };
 
+    const updateListSort = (key: SortableListSortKey) => {
+        setListSort(prev => ({
+            key,
+            direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc',
+        }));
+    };
+
     const datosSeleccionados = useMemo(
         () => datos.filter(d => seleccionados.includes(d.ejercicio)),
         [datos, seleccionados]
     );
+
+    const datosLista = useMemo(() => {
+        if (listSort.key === 'base') return datos;
+
+        return datos
+            .map((item, index) => ({ item, index }))
+            .sort((a, b) => {
+                const result = compareByListSortKey(a.item, b.item, listSort.key);
+                const sortedResult = listSort.direction === 'asc' ? result : -result;
+
+                return sortedResult || a.index - b.index;
+            })
+            .map(({ item }) => item);
+    }, [datos, listSort]);
 
     // Todas las materias y bloques presentes
     const todasMaterias = useMemo(() => {
@@ -253,6 +413,41 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                         <div
                             role="group"
+                            aria-label="Vista de convocatorias"
+                            data-testid="comparison-view-mode"
+                            style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                        >
+                            <span style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-tertiary)', marginRight: '2px' }}>
+                                Vista
+                            </span>
+                            {(['cards', 'list'] as const).map(mode => (
+                                <button
+                                    key={mode}
+                                    type="button"
+                                    aria-label={mode === 'cards' ? 'Vista tarjetas' : 'Vista lista'}
+                                    aria-pressed={comparisonViewMode === mode}
+                                    onClick={() => setComparisonViewMode(mode)}
+                                    style={{
+                                        minWidth: '54px',
+                                        height: '28px',
+                                        padding: '0 8px',
+                                        borderRadius: '3px',
+                                        border: `1px solid ${comparisonViewMode === mode ? 'var(--accent-primary)' : 'var(--border-primary)'}`,
+                                        backgroundColor: comparisonViewMode === mode ? 'var(--accent-primary)' : 'var(--bg-secondary)',
+                                        color: comparisonViewMode === mode ? '#fff' : 'var(--text-primary)',
+                                        fontSize: '12px',
+                                        fontWeight: comparisonViewMode === mode ? 600 : 500,
+                                        cursor: 'pointer',
+                                    }}
+                                >
+                                    {mode === 'cards' ? 'Tarjetas' : 'Lista'}
+                                </button>
+                            ))}
+                        </div>
+
+                        {comparisonViewMode === 'cards' && (
+                        <div
+                            role="group"
                             aria-label="Tarjetas por fila"
                             data-testid="comparison-cards-per-row"
                             style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
@@ -283,6 +478,28 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
                                 </button>
                             ))}
                         </div>
+                        )}
+
+                        {comparisonViewMode === 'list' && listSort.key !== 'base' && (
+                            <button
+                                type="button"
+                                aria-label="Restaurar orden base"
+                                onClick={() => setListSort(DEFAULT_LIST_SORT)}
+                                style={{
+                                    height: '28px',
+                                    padding: '0 8px',
+                                    fontSize: '11px',
+                                    fontWeight: 500,
+                                    color: 'var(--text-secondary)',
+                                    backgroundColor: 'var(--bg-secondary)',
+                                    border: '1px solid var(--border-primary)',
+                                    borderRadius: '3px',
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                Orden base
+                            </button>
+                        )}
 
                         {seleccionados.length > 0 && (
                             <button
@@ -299,6 +516,7 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
                         )}
                     </div>
                 </div>
+                {comparisonViewMode === 'cards' ? (
                 <div style={{ overflowX: 'auto', paddingBottom: '2px' }}>
                     <div
                         data-testid="comparison-exercise-grid"
@@ -435,6 +653,193 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
                         })}
                     </div>
                 </div>
+                ) : (
+                <div style={{ overflowX: 'auto', paddingBottom: '2px' }}>
+                    <table
+                        aria-label="Convocatorias comparables"
+                        data-testid="comparison-exercise-list"
+                        style={{
+                            width: '100%',
+                            minWidth: '980px',
+                            borderCollapse: 'separate',
+                            borderSpacing: 0,
+                            fontSize: '11px',
+                            color: 'var(--text-primary)',
+                        }}
+                    >
+                        <thead>
+                            <tr>
+                                <th
+                                    scope="col"
+                                    style={{
+                                        width: '38px',
+                                        padding: '6px 8px',
+                                        borderBottom: '1px solid var(--border-secondary)',
+                                        color: 'var(--text-tertiary)',
+                                        fontWeight: 500,
+                                        textAlign: 'left',
+                                    }}
+                                >
+                                    Sel.
+                                </th>
+                                {LIST_COLUMNS.map(column => {
+                                    const active = listSort.key === column.key;
+
+                                    return (
+                                        <th
+                                            key={column.key}
+                                            scope="col"
+                                            aria-sort={active ? (listSort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}
+                                            style={{
+                                                minWidth: `${column.minWidth}px`,
+                                                padding: '6px 8px',
+                                                borderBottom: '1px solid var(--border-secondary)',
+                                                color: 'var(--text-tertiary)',
+                                                fontWeight: 500,
+                                                textAlign: column.align === 'right' ? 'right' : 'left',
+                                                whiteSpace: 'nowrap',
+                                            }}
+                                        >
+                                            <button
+                                                type="button"
+                                                aria-label={`Ordenar por ${column.label}`}
+                                                aria-pressed={active}
+                                                onClick={() => updateListSort(column.key)}
+                                                style={{
+                                                    width: '100%',
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: column.align === 'right' ? 'flex-end' : 'flex-start',
+                                                    gap: '4px',
+                                                    border: 'none',
+                                                    backgroundColor: 'transparent',
+                                                    color: active ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                                                    padding: 0,
+                                                    font: 'inherit',
+                                                    fontWeight: active ? 600 : 500,
+                                                    cursor: 'pointer',
+                                                    textAlign: column.align === 'right' ? 'right' : 'left',
+                                                }}
+                                            >
+                                                <span>{column.label}</span>
+                                                {active && (
+                                                    <span aria-hidden="true" style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
+                                                        {listSort.direction === 'asc' ? '↑' : '↓'}
+                                                    </span>
+                                                )}
+                                            </button>
+                                        </th>
+                                    );
+                                })}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {datosLista.map(d => {
+                                const sel = seleccionados.includes(d.ejercicio);
+                                const disabled = !sel && seleccionados.length >= 4;
+                                const organismColor = getOrganismColor(d.organismo);
+                                const selectedBackground = sel ? 'var(--bg-tertiary)' : 'var(--bg-secondary)';
+
+                                return (
+                                    <tr
+                                        key={d.ejercicio}
+                                        data-testid="comparison-exercise-row"
+                                        data-organism={d.organismo}
+                                        data-scale={d.escala}
+                                        data-year={String(d.año)}
+                                        data-access={d.acceso}
+                                        data-call-type={d.tipoConvocatoria}
+                                        data-exercise-type={d.tipo}
+                                        data-exercise={d.ejercicio}
+                                        data-selected={sel ? 'true' : 'false'}
+                                        style={{
+                                            backgroundColor: selectedBackground,
+                                            opacity: disabled ? 0.55 : 1,
+                                        }}
+                                    >
+                                        <td
+                                            style={{
+                                                padding: '7px 8px',
+                                                borderBottom: '1px solid var(--border-secondary)',
+                                                borderLeft: `4px solid ${organismColor}`,
+                                                width: '38px',
+                                            }}
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                data-testid="comparison-list-checkbox"
+                                                aria-label={`Seleccionar ${d.ejercicio}`}
+                                                checked={sel}
+                                                disabled={disabled}
+                                                onChange={() => toggleSeleccion(d.ejercicio)}
+                                                style={{
+                                                    width: '16px',
+                                                    height: '16px',
+                                                    accentColor: 'var(--accent-primary)',
+                                                    cursor: disabled ? 'not-allowed' : 'pointer',
+                                                }}
+                                            />
+                                        </td>
+                                        <td style={{ padding: '7px 8px', borderBottom: '1px solid var(--border-secondary)' }}>
+                                            <span
+                                                style={{
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    maxWidth: '100%',
+                                                    padding: '1px 6px',
+                                                    borderRadius: '3px',
+                                                    border: `1px solid ${getSubtleColorTone(organismColor, 0.36)}`,
+                                                    backgroundColor: getSubtleColorTone(organismColor, 0.16),
+                                                    color: getReadableTextColor(organismColor),
+                                                    fontSize: '10.5px',
+                                                    fontWeight: 600,
+                                                    lineHeight: 1.25,
+                                                    overflowWrap: 'anywhere',
+                                                }}
+                                            >
+                                                {d.organismo}
+                                            </span>
+                                        </td>
+                                        <td style={{ padding: '7px 8px', borderBottom: '1px solid var(--border-secondary)', color: 'var(--text-secondary)' }}>
+                                            {formatScaleLabel(d.escala, 'short')}
+                                        </td>
+                                        <td style={{ padding: '7px 8px', borderBottom: '1px solid var(--border-secondary)', color: 'var(--text-secondary)', textAlign: 'right' }}>
+                                            {d.año > 0 ? d.año : 'Sin año'}
+                                        </td>
+                                        <td style={{ padding: '7px 8px', borderBottom: '1px solid var(--border-secondary)', color: 'var(--text-secondary)' }}>
+                                            {formatAccessLabel(d.acceso, 'short')}
+                                        </td>
+                                        <td style={{ padding: '7px 8px', borderBottom: '1px solid var(--border-secondary)', color: 'var(--text-secondary)' }}>
+                                            {d.tipoConvocatoria ? formatCallTypeLabel(d.tipoConvocatoria, 'short') : '—'}
+                                        </td>
+                                        <td style={{ padding: '7px 8px', borderBottom: '1px solid var(--border-secondary)', color: 'var(--text-secondary)' }}>
+                                            {d.tipo ? formatExerciseTypeLabel(d.tipo) : '—'}
+                                        </td>
+                                        <td style={{ padding: '7px 8px', borderBottom: '1px solid var(--border-secondary)', color: 'var(--text-secondary)' }}>
+                                            {d.modelo ? formatModelLabel(d.modelo) : '—'}
+                                        </td>
+                                        <td style={{ padding: '7px 8px', borderBottom: '1px solid var(--border-secondary)', color: 'var(--text-secondary)', textAlign: 'right' }}>
+                                            {d.totalPreguntas}
+                                        </td>
+                                        <td
+                                            title={d.ejercicio}
+                                            style={{
+                                                padding: '7px 8px',
+                                                borderBottom: '1px solid var(--border-secondary)',
+                                                color: 'var(--text-primary)',
+                                                fontWeight: 500,
+                                                overflowWrap: 'anywhere',
+                                            }}
+                                        >
+                                            {d.ejercicio}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+                )}
             </div>
 
             {datosSeleccionados.length < 2 ? (

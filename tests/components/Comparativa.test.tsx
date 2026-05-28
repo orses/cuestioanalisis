@@ -8,6 +8,10 @@ function getCards(): HTMLElement[] {
     return screen.getAllByTestId('comparison-exercise-card');
 }
 
+function getRows(): HTMLElement[] {
+    return screen.getAllByTestId('comparison-exercise-row');
+}
+
 function parseCssColor(value: string): [number, number, number, number] {
     const hexMatch = /^#([0-9a-f]{6})$/i.exec(value.trim());
     if (hexMatch) {
@@ -227,6 +231,60 @@ describe('Comparativa', () => {
         expect(screen.getByRole('button', { name: '8 tarjetas por fila' })).toHaveAttribute('aria-pressed', 'true');
     });
 
+    it('permite cambiar a vista lista con columnas ordenables', () => {
+        render(
+            <Comparativa
+                preguntas={[
+                    createQuestion({ id: 'lista_2021_1', id_cuestionario: 'Q2021', metadatos: { organismo: 'INAP', escala: 'AUX', año: 2021, acceso: 'LI', tipo: 'PRI' } }),
+                    createQuestion({ id: 'lista_2020_1', id_cuestionario: 'Q2020', metadatos: { organismo: 'SERGAS', escala: 'PSX', año: 2020, acceso: 'PI', tipo: 'SEG' } }),
+                ]}
+            />
+        );
+
+        fireEvent.click(screen.getByRole('button', { name: 'Vista lista' }));
+
+        expect(screen.getByRole('button', { name: 'Vista lista' })).toHaveAttribute('aria-pressed', 'true');
+        expect(screen.queryByTestId('comparison-exercise-grid')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('comparison-cards-per-row')).not.toBeInTheDocument();
+        expect(screen.getByRole('table', { name: 'Convocatorias comparables' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Ordenar por Organismo' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Ordenar por Escala' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Ordenar por Año' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Ordenar por Acceso' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Ordenar por Ejerc.' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Ordenar por Preguntas' })).toBeInTheDocument();
+        expect(getRows()).toHaveLength(2);
+    });
+
+    it('ordena la lista por año y persiste vista y ordenación', () => {
+        const preguntas = [
+            createQuestion({ id: 'year_2021_1', id_cuestionario: 'Q2021', metadatos: { organismo: 'INAP', escala: 'AUX', año: 2021, acceso: 'LI', tipo: 'PRI' } }),
+            createQuestion({ id: 'year_2019_1', id_cuestionario: 'Q2019', metadatos: { organismo: 'INAP', escala: 'AUX', año: 2019, acceso: 'LI', tipo: 'PRI' } }),
+            createQuestion({ id: 'year_2023_1', id_cuestionario: 'Q2023', metadatos: { organismo: 'INAP', escala: 'AUX', año: 2023, acceso: 'LI', tipo: 'PRI' } }),
+        ];
+        const { unmount } = render(<Comparativa preguntas={preguntas} />);
+
+        fireEvent.click(screen.getByRole('button', { name: 'Vista lista' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Ordenar por Año' }));
+
+        expect(getRows().map(row => row.dataset.year)).toEqual(['2019', '2021', '2023']);
+        expect(screen.getByRole('button', { name: 'Ordenar por Año' }).closest('th')).toHaveAttribute('aria-sort', 'ascending');
+
+        fireEvent.click(screen.getByRole('button', { name: 'Ordenar por Año' }));
+
+        expect(getRows().map(row => row.dataset.year)).toEqual(['2023', '2021', '2019']);
+        expect(screen.getByRole('button', { name: 'Ordenar por Año' }).closest('th')).toHaveAttribute('aria-sort', 'descending');
+        expect(window.localStorage.getItem('comparativa.viewMode')).toBe('list');
+        expect(window.localStorage.getItem('comparativa.listSort')).toBe(JSON.stringify({ key: 'year', direction: 'desc' }));
+
+        unmount();
+        render(<Comparativa preguntas={preguntas} />);
+
+        expect(screen.getByRole('button', { name: 'Vista lista' })).toHaveAttribute('aria-pressed', 'true');
+        expect(getRows().map(row => row.dataset.year)).toEqual(['2023', '2021', '2019']);
+        expect(screen.getByRole('button', { name: 'Restaurar orden base' })).toBeInTheDocument();
+    });
+
     it('muestra badges compactos sin rótulo visible y marca claramente la tarjeta seleccionada', () => {
         render(
             <Comparativa
@@ -368,5 +426,33 @@ describe('Comparativa', () => {
 
         expect(cards[0]).toHaveAttribute('data-selected', 'false');
         expect(cards[4]).not.toBeDisabled();
+    });
+
+    it('mantiene el límite de cuatro convocatorias seleccionadas desde la lista', () => {
+        render(
+            <Comparativa
+                preguntas={[
+                    createQuestion({ id: 'lista_limite_1_1', id_cuestionario: 'Q1' }),
+                    createQuestion({ id: 'lista_limite_2_1', id_cuestionario: 'Q2' }),
+                    createQuestion({ id: 'lista_limite_3_1', id_cuestionario: 'Q3' }),
+                    createQuestion({ id: 'lista_limite_4_1', id_cuestionario: 'Q4' }),
+                    createQuestion({ id: 'lista_limite_5_1', id_cuestionario: 'Q5' }),
+                ]}
+            />
+        );
+
+        fireEvent.click(screen.getByRole('button', { name: 'Vista lista' }));
+
+        const checkboxes = screen.getAllByTestId('comparison-list-checkbox') as HTMLInputElement[];
+        checkboxes.slice(0, 4).forEach(checkbox => fireEvent.click(checkbox));
+
+        expect(checkboxes.slice(0, 4).map(checkbox => checkbox.checked)).toEqual([true, true, true, true]);
+        expect(getRows().slice(0, 4).map(row => row.dataset.selected)).toEqual(['true', 'true', 'true', 'true']);
+        expect(checkboxes[4]).toBeDisabled();
+
+        fireEvent.click(checkboxes[0]);
+
+        expect(checkboxes[0].checked).toBe(false);
+        expect(checkboxes[4]).not.toBeDisabled();
     });
 });
