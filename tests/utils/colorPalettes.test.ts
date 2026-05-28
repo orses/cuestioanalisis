@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
     ANSWER_DISTRIBUTION_COLORS,
+    buildCategoricalColorMap,
     COMPARISON_GROUP_COLORS,
     COMPARISON_SERIES_COLORS,
     SUMMARY_ANSWER_COLORS,
@@ -66,5 +67,14 @@ describe('paletas de color categóricas', () => {
 
     it('no usa rojo, verde ni amarillo para respuestas categóricas del resumen', () => {
         expectNoReservedSemanticColors(Object.values(SUMMARY_ANSWER_COLORS));
+    });
+
+    it('asigna un único color por categoría y no consume paleta en repetidos', () => {
+        const colorMap = buildCategoricalColorMap(['INAP', 'SERGAS', 'INAP', '  JCCM  '], ['#111111', '#222222', '#333333']);
+
+        expect(colorMap.size).toBe(3);
+        expect(colorMap.get('INAP')).toBe('#111111');
+        expect(colorMap.get('SERGAS')).toBe('#222222');
+        expect(colorMap.get('JCCM')).toBe('#333333');
     });
 });

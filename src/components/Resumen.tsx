@@ -7,7 +7,7 @@ import { getMateriaColor as getColorMateria } from '../utils/colores';
 import { SUMMARY_ANSWER_COLORS } from '../utils/colorPalettes';
 import { obtenerClaveEjercicioCuestionario } from '../utils/ejercicios';
 import { formatAccessLabel, formatCallTypeLabel, formatExerciseTypeLabel, formatModelLabel, formatQuotaLabel, formatScaleLabel } from '../utils/metadata';
-import { normalizarPrograma } from '../utils/parser';
+import { normalizarPrograma } from '../utils/programs';
 
 export interface FiltroTabla {
     materias?: string[];

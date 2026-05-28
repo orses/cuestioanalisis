@@ -2,7 +2,7 @@ import React, { useState, useMemo, useRef, useCallback } from 'react';
 import type { Pregunta } from '../types';
 import { obtenerEtiquetaEjercicioCuestionario } from '../utils/ejercicios';
 import { formatAccessLabel, formatCallTypeLabel, formatExerciseTypeLabel, formatQuotaLabel } from '../utils/metadata';
-import { normalizarPrograma } from '../utils/parser';
+import { normalizarPrograma } from '../utils/programs';
 import { Database, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { PaginationControls } from './common/PaginationControls';
 import { usePaginatedRows } from '../hooks/usePaginatedRows';

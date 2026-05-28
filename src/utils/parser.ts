@@ -3,6 +3,9 @@ import JSZip from 'jszip';
 import type { Pregunta, ConceptoAdyacente, DatasetAnalisis, CuestionarioMeta, MetadatosEjercicio } from '../types';
 import { obtenerEjercicioBase } from './ejercicios';
 import { ACCESS_CODES, CALL_TYPE_CODES, EXERCISE_TYPE_CODES, MODEL_CODES, QUOTA_CODES, SCALE_CODES } from './metadata';
+import { normalizarPrograma } from './programs';
+
+export { normalizarPrograma } from './programs';
 
 type ValorCelda = string | number | boolean | Date | null | undefined;
 type FilaFuente = Record<string, ValorCelda>;
@@ -113,68 +116,6 @@ function pareceBooleano(valor: ValorCelda): boolean {
     if (texto === '✓' || texto === '✔' || texto === '☑' || texto === '☐') return true;
     const normalizado = normalizarValorBooleano(valor);
     return VALORES_VERDADEROS.has(normalizado) || VALORES_FALSOS.has(normalizado);
-}
-
-function normalizarClavePrograma(texto: string): string {
-    return texto
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .trim();
-}
-
-function limpiarFragmentoPrograma(texto: string): string {
-    return texto
-        .replace(/\b\d{4}\b/g, '')
-        .replace(/\b365\b/g, '')
-        .replace(/\b\d{1,2}\b/g, '')
-        .replace(/\bCl[áa]sico\b/gi, '')
-        .replace(/[,;]+/g, '')
-        .replace(/\s+/g, ' ')
-        .trim();
-}
-
-function colapsarPalabrasRepetidas(texto: string): string {
-    return texto
-        .split(' ')
-        .filter((palabra, indice, palabras) => indice === 0 || normalizarClavePrograma(palabra) !== normalizarClavePrograma(palabras[indice - 1]))
-        .join(' ');
-}
-
-const PROGRAM_ALIASES: Record<string, string> = {
-    palabra: 'Word',
-    sobresalir: 'Excel',
-    acceso: 'Access',
-    perspectiva: 'Outlook',
-    borde: 'Edge',
-    escritor: 'Writer',
-    calculo: 'Calc',
-    ventanas: 'Windows',
-};
-
-function normalizarAliasPrograma(texto: string): string {
-    return PROGRAM_ALIASES[normalizarClavePrograma(texto)] ?? texto;
-}
-
-/**
- * Normaliza el nombre de un programa o aplicación eliminando versiones, años,
- * sufijos numéricos y variantes como «Clásico».
- */
-export function normalizarPrograma(app: string): string {
-    const texto = normalizarTextoVisual(app);
-    if (!texto) return '';
-
-    const fragmentos = texto
-        .split(/\s*(?:[,;/|]+|\s+(?:y|e|and)\s+)\s*/i)
-        .map(limpiarFragmentoPrograma)
-        .filter(Boolean);
-    const clavesUnicas = new Set(fragmentos.map(normalizarClavePrograma));
-
-    if (fragmentos.length > 1 && clavesUnicas.size === 1) {
-        return normalizarAliasPrograma(fragmentos[0]);
-    }
-
-    return normalizarAliasPrograma(colapsarPalabrasRepetidas(limpiarFragmentoPrograma(texto)));
 }
 
 /** Dado un objeto-fila original, devuelve funciones de lectura insensibles a acentos y separadores. */

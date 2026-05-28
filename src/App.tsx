@@ -1,27 +1,25 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { Upload, Sun, Moon, FileSpreadsheet, ChevronUp, AlertCircle } from 'lucide-react';
-import { procesarCSV, parsearCatalogo, csvTieneIdCuestionario, normalizarCatalogo, normalizarDatasetAnalisis } from './utils/parser';
 import type { DatasetAnalisis, Pregunta, CuestionarioMeta } from './types';
 import { useFiltros } from './hooks/useFiltros';
 import { useFiltrosCatalogo } from './hooks/useFiltrosCatalogo';
 import { AppHeader, type Vista } from './components/layout/AppHeader';
 import { BarraFiltros } from './components/layout/BarraFiltros';
-import { PanelEstadisticas } from './components/layout/PanelEstadisticas';
-import { ModalPregunta } from './components/layout/ModalPregunta';
-import { ModalCuestionarioId } from './components/layout/ModalCuestionarioId';
-import { Resumen } from './components/Resumen';
-import { TablaPreguntas } from './components/TablaPreguntas';
-import { VisorDataset } from './components/VisorDataset';
-import { Generador } from './components/Generador';
-import { BusquedaSemantica } from './components/BusquedaSemantica';
-import { Comparativa } from './components/Comparativa';
-import { ExamenSimulado } from './components/ExamenSimulado';
-import { Ayuda } from './components/Ayuda';
-import { CatalogoCuestionarios } from './components/CatalogoCuestionarios';
 import { guardarDataset, recuperarDataset, guardarCatalogo, recuperarCatalogo } from './utils/storage';
-import { descargarInforme } from './utils/generarInforme';
 import { obtenerClaveEjercicioCuestionario, obtenerEjercicioBase } from './utils/ejercicios';
-import Papa from 'papaparse';
+
+const Resumen = lazy(() => import('./components/Resumen').then(module => ({ default: module.Resumen })));
+const PanelEstadisticas = lazy(() => import('./components/layout/PanelEstadisticas').then(module => ({ default: module.PanelEstadisticas })));
+const TablaPreguntas = lazy(() => import('./components/TablaPreguntas').then(module => ({ default: module.TablaPreguntas })));
+const VisorDataset = lazy(() => import('./components/VisorDataset').then(module => ({ default: module.VisorDataset })));
+const Generador = lazy(() => import('./components/Generador').then(module => ({ default: module.Generador })));
+const BusquedaSemantica = lazy(() => import('./components/BusquedaSemantica').then(module => ({ default: module.BusquedaSemantica })));
+const Comparativa = lazy(() => import('./components/Comparativa').then(module => ({ default: module.Comparativa })));
+const ExamenSimulado = lazy(() => import('./components/ExamenSimulado').then(module => ({ default: module.ExamenSimulado })));
+const Ayuda = lazy(() => import('./components/Ayuda').then(module => ({ default: module.Ayuda })));
+const CatalogoCuestionarios = lazy(() => import('./components/CatalogoCuestionarios').then(module => ({ default: module.CatalogoCuestionarios })));
+const ModalPregunta = lazy(() => import('./components/layout/ModalPregunta').then(module => ({ default: module.ModalPregunta })));
+const ModalCuestionarioId = lazy(() => import('./components/layout/ModalCuestionarioId').then(module => ({ default: module.ModalCuestionarioId })));
 
 // Claves editables de Pregunta — protege contra prototype pollution en guardarEdicion
 const ALLOWED_EDICION_KEYS = new Set<string>([
@@ -32,6 +30,19 @@ const ALLOWED_EDICION_KEYS = new Set<string>([
 
 function obtenerMensajeError(error: unknown): string {
   return error instanceof Error ? error.message : 'Se ha producido un error al procesar el archivo.';
+}
+
+function ViewLoadingFallback() {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className="rounded-lg border px-4 py-3 text-sm text-muted"
+      style={{ borderColor: 'var(--border-secondary)', backgroundColor: 'var(--bg-secondary)' }}
+    >
+      Cargando vista...
+    </div>
+  );
 }
 
 function App() {
@@ -132,6 +143,7 @@ function App() {
       const files = Array.from(e.target.files || []);
       if (files.length === 0) return;
 
+      const { csvTieneIdCuestionario } = await import('./utils/parser');
       const checks = await Promise.all(files.map(async f => ({
         file: f,
         tieneId: await csvTieneIdCuestionario(f),
@@ -156,6 +168,7 @@ function App() {
   const procesarArchivos = async (archivos: { file: File; idCuestionario?: string }[]) => {
     setLoading(true);
     try {
+      const { procesarCSV, normalizarDatasetAnalisis } = await import('./utils/parser');
       const resultados = await Promise.all(
         archivos.map(a => procesarCSV(a.file, a.idCuestionario))
       );
@@ -205,6 +218,7 @@ function App() {
     if (!file) return;
     try {
       setMensajeError(null);
+      const { parsearCatalogo } = await import('./utils/parser');
       const nuevoCatalogo = await parsearCatalogo(file);
       setCatalogo(nuevoCatalogo);
       setMensajeError(null);
@@ -219,8 +233,9 @@ function App() {
 
   // ——— Restaurar sesión automáticamente ———
   useEffect(() => {
-    recuperarDataset().then(result => {
+    recuperarDataset().then(async result => {
       if (result && !dataset) {
+        const { normalizarDatasetAnalisis } = await import('./utils/parser');
         const datasetNormalizado = normalizarDatasetAnalisis(result.data);
         setDataset(datasetNormalizado);
         setNombresArchivos(result.nombreArchivos);
@@ -229,8 +244,9 @@ function App() {
         }
       }
     }).catch(() => { });
-    recuperarCatalogo().then(cat => {
+    recuperarCatalogo().then(async cat => {
       if (cat) {
+        const { normalizarCatalogo } = await import('./utils/parser');
         const catalogoNormalizado = normalizarCatalogo(cat);
         setCatalogo(catalogoNormalizado);
         guardarCatalogo(catalogoNormalizado).catch(() => { });
@@ -256,7 +272,7 @@ function App() {
   }, []);
 
   // ——— Descarga CSV corregido ———
-  const descargarCSV = () => {
+  const descargarCSV = async () => {
     const rows = preguntasEditadas.map(p => ({
       id_cuestionario: p.id_cuestionario,
       ejercicio: obtenerEjercicioBase(p),
@@ -276,6 +292,7 @@ function App() {
       observaciones: p.observaciones || '',
     }));
 
+    const Papa = (await import('papaparse')).default;
     const csv = Papa.unparse(rows, { delimiter: '|', header: true });
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
@@ -286,7 +303,7 @@ function App() {
   };
 
   // ——— Exportar filtrado ———
-  const exportarFiltrado = () => {
+  const exportarFiltrado = async () => {
     if (filtros.preguntasFiltradas.length === 0) return;
     const rows = filtros.preguntasFiltradas.map(p => ({
       id_cuestionario: p.id_cuestionario,
@@ -306,6 +323,7 @@ function App() {
       anulada: p.anulada ? 'VERDADERO' : 'FALSO',
       observaciones: p.observaciones || '',
     }));
+    const Papa = (await import('papaparse')).default;
     const csv = Papa.unparse(rows, { delimiter: '|', header: true });
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
@@ -320,6 +338,15 @@ function App() {
     () => new Set(preguntasEditadas.map(obtenerClaveEjercicioCuestionario)).size,
     [preguntasEditadas]
   );
+
+  const descargarInformeActual = useCallback(async () => {
+    const { descargarInforme } = await import('./utils/generarInforme');
+    descargarInforme(
+      filtros.preguntasFiltradas,
+      nombresArchivos.join(', '),
+      { filtrado: filtros.hayFiltrosActivos, totalSinFiltrar: preguntasEditadas.length },
+    );
+  }, [filtros.hayFiltrosActivos, filtros.preguntasFiltradas, nombresArchivos, preguntasEditadas.length]);
 
   // ——— Callbacks de navegación desde modal ———
   const crearFiltroDesdeModal = useCallback((setter: (v: string[]) => void) => {
@@ -400,11 +427,7 @@ function App() {
         dark={dark}
         loading={loading}
         onExportarFiltrado={exportarFiltrado}
-        onDescargarInforme={() => descargarInforme(
-          filtros.preguntasFiltradas,
-          nombresArchivos.join(', '),
-          { filtrado: filtros.hayFiltrosActivos, totalSinFiltrar: preguntasEditadas.length },
-        )}
+        onDescargarInforme={descargarInformeActual}
         onDescargarCSV={descargarCSV}
         onToggleDark={() => setDark(!dark)}
         onReemplazar={() => { setDataset(null); setEdiciones({}); setNombresArchivos([]); setMensajeError(null); }}
@@ -460,117 +483,119 @@ function App() {
       {/* ———— CONTENIDO PRINCIPAL ———— */}
       <main className="max-w-[1800px] mx-auto p-4 lg:p-6">
 
-        {vistaActual === 'resumen' && (
-          <div id="panel-resumen" role="tabpanel" className="animate-fade-slide">
-            <Resumen
-              preguntas={filtros.preguntasFiltradas}
-              onVerEjercicio={(organismo, escala, año, acceso, tipo, cuestionario) => {
-                filtros.setCuestionarios(cuestionario ? [cuestionario] : []);
-                filtros.setOrganismos([organismo]);
-                filtros.setEscalas([escala]);
-                filtros.setAños([año]);
-                filtros.setAccesos([acceso]);
-                filtros.setEjercicios([tipo]);
-                setVistaActual('ejercicios');
-              }}
-              onFiltrarYVerTabla={(f) => {
-                if (f.materias) filtros.setMaterias(f.materias);
-                if (f.bloques) filtros.setBloques(f.bloques);
-                if (f.temas) filtros.setTemas(f.temas);
-                if (f.aplicaciones) filtros.setAplicaciones(f.aplicaciones);
-                if (f.anulada) filtros.setAnulada(f.anulada);
-                setVistaActual('tabla');
-              }}
-            />
-          </div>
-        )}
-
-        {vistaActual === 'estadisticas' && (
-          <PanelEstadisticas
-            preguntas={filtros.preguntasFiltradas}
-            onVerPregunta={navegarAPregunta}
-            setMaterias={filtros.setMaterias}
-          />
-        )}
-
-        {vistaActual === 'ejercicios' && (
-          <div id="panel-ejercicios" role="tabpanel" className="animate-fade-slide space-y-6">
-            <div className="bg-card border rounded-xl p-6" style={{ borderColor: 'var(--border-secondary)' }}>
-              <h2 className="text-lg font-bold text-heading mb-4">
-                Cuestionarios y Distractores ({filtros.preguntasFiltradas.length} resultados)
-              </h2>
-              <TablaPreguntas
+        <Suspense fallback={<ViewLoadingFallback />}>
+          {vistaActual === 'resumen' && (
+            <div id="panel-resumen" role="tabpanel" className="animate-fade-slide">
+              <Resumen
                 preguntas={filtros.preguntasFiltradas}
-                onGuardarEdicion={guardarEdicion}
-                onFiltrarMateria={(m) => filtros.setMaterias([m])}
-                onFiltrarBloque={(b) => filtros.setBloques([b])}
-                onFiltrarTema={(t) => filtros.setTemas([t])}
-                onFiltrarAplicacion={(a) => filtros.setAplicaciones([a])}
-                onFiltrarAño={(a) => filtros.setAños([a])}
-                onFiltrarEscala={(e) => filtros.setEscalas([e])}
-                onFiltrarAcceso={(a) => filtros.setAccesos([a])}
-                onFiltrarEjercicio={(e) => filtros.setEjercicios([e])}
-              onVerPregunta={navegarAPregunta}
+                onVerEjercicio={(organismo, escala, año, acceso, tipo, cuestionario) => {
+                  filtros.setCuestionarios(cuestionario ? [cuestionario] : []);
+                  filtros.setOrganismos([organismo]);
+                  filtros.setEscalas([escala]);
+                  filtros.setAños([año]);
+                  filtros.setAccesos([acceso]);
+                  filtros.setEjercicios([tipo]);
+                  setVistaActual('ejercicios');
+                }}
+                onFiltrarYVerTabla={(f) => {
+                  if (f.materias) filtros.setMaterias(f.materias);
+                  if (f.bloques) filtros.setBloques(f.bloques);
+                  if (f.temas) filtros.setTemas(f.temas);
+                  if (f.aplicaciones) filtros.setAplicaciones(f.aplicaciones);
+                  if (f.anulada) filtros.setAnulada(f.anulada);
+                  setVistaActual('tabla');
+                }}
               />
             </div>
-          </div>
-        )}
+          )}
 
-        {vistaActual === 'tabla' && (
-          <div id="panel-tabla" role="tabpanel" className="animate-fade-slide">
-            <VisorDataset preguntas={filtros.preguntasFiltradas} onVerPregunta={navegarAPregunta} />
-          </div>
-        )}
-
-        {vistaActual === 'generador' && (
-          <div id="panel-generador" role="tabpanel" className="animate-fade-slide">
-            <Generador preguntas={filtros.preguntasFiltradas} />
-          </div>
-        )}
-
-        {vistaActual === 'conceptos' && (
-          <div id="panel-conceptos" role="tabpanel" className="animate-fade-slide">
-            <div className="bg-card border rounded-xl p-6" style={{ borderColor: 'var(--border-secondary)' }}>
-              <h2 className="text-lg font-bold text-heading mb-4">Búsqueda Semántica por Concepto</h2>
-              <BusquedaSemantica preguntas={filtros.preguntasFiltradas} onVerPregunta={navegarAPregunta} />
-            </div>
-          </div>
-        )}
-
-        {vistaActual === 'comparativa' && (
-          <div id="panel-comparativa" role="tabpanel" className="animate-fade-slide">
-            <Comparativa preguntas={filtros.preguntasFiltradas} />
-          </div>
-        )}
-
-        {vistaActual === 'simulacro' && (
-          <div id="panel-simulacro" role="tabpanel" className="animate-fade-slide">
-            <ExamenSimulado preguntas={filtros.preguntasFiltradas} />
-          </div>
-        )}
-
-        {vistaActual === 'ayuda' && (
-          <div id="panel-ayuda" role="tabpanel" className="animate-fade-slide">
-            <Ayuda />
-          </div>
-        )}
-
-        {vistaActual === 'catalogo' && (
-          <div id="panel-catalogo" role="tabpanel" className="animate-fade-slide">
-            <CatalogoCuestionarios
-              catalogo={catalogo}
-              catalogoFiltradoGlobal={catFiltros.catalogoFiltrado}
-              cuestionariosCargados={dataset?.cuestionarios_cargados || []}
-              onCargarCatalogo={handleCargarCatalogo}
-              onVerCuestionario={(id) => { filtros.setCuestionarios([id]); setVistaActual('ejercicios'); }}
-              catVersionesDisponibles={catFiltros.disponibles.versiones} catVersionesActivas={catFiltros.state.versiones} setCatVersionesActivas={catFiltros.setVersiones}
-              catTiposDisponibles={catFiltros.disponibles.tipos} catTiposActivos={catFiltros.state.tipos} setCatTiposActivos={catFiltros.setTipos}
-              catEstadosDisponibles={catFiltros.disponibles.estados} catEstadosActivos={catFiltros.state.estados} setCatEstadosActivos={catFiltros.setEstados}
-              catSODisponibles={catFiltros.disponibles.so} catSOActivos={catFiltros.state.so} setCatSOActivos={catFiltros.setSo}
-              catOfimaticaDisponibles={catFiltros.disponibles.ofimatica} catOfimaticaActiva={catFiltros.state.ofimatica} setCatOfimaticaActiva={catFiltros.setOfimatica}
+          {vistaActual === 'estadisticas' && (
+            <PanelEstadisticas
+              preguntas={filtros.preguntasFiltradas}
+              onVerPregunta={navegarAPregunta}
+              setMaterias={filtros.setMaterias}
             />
-          </div>
-        )}
+          )}
+
+          {vistaActual === 'ejercicios' && (
+            <div id="panel-ejercicios" role="tabpanel" className="animate-fade-slide space-y-6">
+              <div className="bg-card border rounded-xl p-6" style={{ borderColor: 'var(--border-secondary)' }}>
+                <h2 className="text-lg font-bold text-heading mb-4">
+                  Cuestionarios y Distractores ({filtros.preguntasFiltradas.length} resultados)
+                </h2>
+                <TablaPreguntas
+                  preguntas={filtros.preguntasFiltradas}
+                  onGuardarEdicion={guardarEdicion}
+                  onFiltrarMateria={(m) => filtros.setMaterias([m])}
+                  onFiltrarBloque={(b) => filtros.setBloques([b])}
+                  onFiltrarTema={(t) => filtros.setTemas([t])}
+                  onFiltrarAplicacion={(a) => filtros.setAplicaciones([a])}
+                  onFiltrarAño={(a) => filtros.setAños([a])}
+                  onFiltrarEscala={(e) => filtros.setEscalas([e])}
+                  onFiltrarAcceso={(a) => filtros.setAccesos([a])}
+                  onFiltrarEjercicio={(e) => filtros.setEjercicios([e])}
+                  onVerPregunta={navegarAPregunta}
+                />
+              </div>
+            </div>
+          )}
+
+          {vistaActual === 'tabla' && (
+            <div id="panel-tabla" role="tabpanel" className="animate-fade-slide">
+              <VisorDataset preguntas={filtros.preguntasFiltradas} onVerPregunta={navegarAPregunta} />
+            </div>
+          )}
+
+          {vistaActual === 'generador' && (
+            <div id="panel-generador" role="tabpanel" className="animate-fade-slide">
+              <Generador preguntas={filtros.preguntasFiltradas} />
+            </div>
+          )}
+
+          {vistaActual === 'conceptos' && (
+            <div id="panel-conceptos" role="tabpanel" className="animate-fade-slide">
+              <div className="bg-card border rounded-xl p-6" style={{ borderColor: 'var(--border-secondary)' }}>
+                <h2 className="text-lg font-bold text-heading mb-4">Búsqueda Semántica por Concepto</h2>
+                <BusquedaSemantica preguntas={filtros.preguntasFiltradas} onVerPregunta={navegarAPregunta} />
+              </div>
+            </div>
+          )}
+
+          {vistaActual === 'comparativa' && (
+            <div id="panel-comparativa" role="tabpanel" className="animate-fade-slide">
+              <Comparativa preguntas={filtros.preguntasFiltradas} />
+            </div>
+          )}
+
+          {vistaActual === 'simulacro' && (
+            <div id="panel-simulacro" role="tabpanel" className="animate-fade-slide">
+              <ExamenSimulado preguntas={filtros.preguntasFiltradas} />
+            </div>
+          )}
+
+          {vistaActual === 'ayuda' && (
+            <div id="panel-ayuda" role="tabpanel" className="animate-fade-slide">
+              <Ayuda />
+            </div>
+          )}
+
+          {vistaActual === 'catalogo' && (
+            <div id="panel-catalogo" role="tabpanel" className="animate-fade-slide">
+              <CatalogoCuestionarios
+                catalogo={catalogo}
+                catalogoFiltradoGlobal={catFiltros.catalogoFiltrado}
+                cuestionariosCargados={dataset?.cuestionarios_cargados || []}
+                onCargarCatalogo={handleCargarCatalogo}
+                onVerCuestionario={(id) => { filtros.setCuestionarios([id]); setVistaActual('ejercicios'); }}
+                catVersionesDisponibles={catFiltros.disponibles.versiones} catVersionesActivas={catFiltros.state.versiones} setCatVersionesActivas={catFiltros.setVersiones}
+                catTiposDisponibles={catFiltros.disponibles.tipos} catTiposActivos={catFiltros.state.tipos} setCatTiposActivos={catFiltros.setTipos}
+                catEstadosDisponibles={catFiltros.disponibles.estados} catEstadosActivos={catFiltros.state.estados} setCatEstadosActivos={catFiltros.setEstados}
+                catSODisponibles={catFiltros.disponibles.so} catSOActivos={catFiltros.state.so} setCatSOActivos={catFiltros.setSo}
+                catOfimaticaDisponibles={catFiltros.disponibles.ofimatica} catOfimaticaActiva={catFiltros.state.ofimatica} setCatOfimaticaActiva={catFiltros.setOfimatica}
+              />
+            </div>
+          )}
+        </Suspense>
       </main>
 
       {/* ———— BOTONES FLOTANTES ———— */}
@@ -605,39 +630,41 @@ function App() {
       )}
 
       {/* ——— MODALES ——— */}
-      {preguntaAExpandir && dataset && (
-        <ModalPregunta
-          preguntaId={preguntaAExpandir}
-          preguntas={dataset.preguntas}
-          preguntasNavegacion={filtros.preguntasFiltradas}
-          cuestionarioNombre={catalogo.find(c => c.id_cuestionario === dataset.preguntas.find(p => p.id === preguntaAExpandir)?.id_cuestionario)?.cuestionario}
-          onNavegar={setPreguntaAExpandir}
-          onCerrar={() => setPreguntaAExpandir(null)}
-          onGuardarEdicion={guardarEdicion}
-          onFiltrarMateria={crearFiltroDesdeModal(filtros.setMaterias)}
-          onFiltrarBloque={crearFiltroDesdeModal(filtros.setBloques)}
-          onFiltrarTema={crearFiltroDesdeModal(filtros.setTemas)}
-          onFiltrarAplicacion={crearFiltroDesdeModal(filtros.setAplicaciones)}
-          onFiltrarAño={crearFiltroDesdeModal(filtros.setAños)}
-          onFiltrarEscala={crearFiltroDesdeModal(filtros.setEscalas)}
-          onFiltrarAcceso={crearFiltroDesdeModal(filtros.setAccesos)}
-          onFiltrarEjercicio={crearFiltroDesdeModal(filtros.setEjercicios)}
-        />
-      )}
+      <Suspense fallback={null}>
+        {preguntaAExpandir && dataset && (
+          <ModalPregunta
+            preguntaId={preguntaAExpandir}
+            preguntas={dataset.preguntas}
+            preguntasNavegacion={filtros.preguntasFiltradas}
+            cuestionarioNombre={catalogo.find(c => c.id_cuestionario === dataset.preguntas.find(p => p.id === preguntaAExpandir)?.id_cuestionario)?.cuestionario}
+            onNavegar={setPreguntaAExpandir}
+            onCerrar={() => setPreguntaAExpandir(null)}
+            onGuardarEdicion={guardarEdicion}
+            onFiltrarMateria={crearFiltroDesdeModal(filtros.setMaterias)}
+            onFiltrarBloque={crearFiltroDesdeModal(filtros.setBloques)}
+            onFiltrarTema={crearFiltroDesdeModal(filtros.setTemas)}
+            onFiltrarAplicacion={crearFiltroDesdeModal(filtros.setAplicaciones)}
+            onFiltrarAño={crearFiltroDesdeModal(filtros.setAños)}
+            onFiltrarEscala={crearFiltroDesdeModal(filtros.setEscalas)}
+            onFiltrarAcceso={crearFiltroDesdeModal(filtros.setAccesos)}
+            onFiltrarEjercicio={crearFiltroDesdeModal(filtros.setEjercicios)}
+          />
+        )}
 
-      {modalIdAbierto && (
-        <ModalCuestionarioId
-          archivosEnEspera={archivosEnEspera}
-          catalogo={catalogo}
-          onCambiarId={(i, id) => {
-            const copia = [...archivosEnEspera];
-            copia[i] = { ...copia[i], idCuestionario: id };
-            setArchivosEnEspera(copia);
-          }}
-          onConfirmar={confirmarModalId}
-          onCancelar={() => { setModalIdAbierto(false); setArchivosEnEspera([]); }}
-        />
-      )}
+        {modalIdAbierto && (
+          <ModalCuestionarioId
+            archivosEnEspera={archivosEnEspera}
+            catalogo={catalogo}
+            onCambiarId={(i, id) => {
+              const copia = [...archivosEnEspera];
+              copia[i] = { ...copia[i], idCuestionario: id };
+              setArchivosEnEspera(copia);
+            }}
+            onConfirmar={confirmarModalId}
+            onCancelar={() => { setModalIdAbierto(false); setArchivosEnEspera([]); }}
+          />
+        )}
+      </Suspense>
     </div>
   );
 }

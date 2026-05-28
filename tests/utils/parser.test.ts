@@ -3,10 +3,10 @@ import {
     csvTieneIdCuestionario,
     normalizarCatalogo,
     normalizarDatasetAnalisis,
-    normalizarPrograma,
     parsearCatalogo,
     procesarCSV,
 } from '../../src/utils/parser';
+import { normalizarPrograma } from '../../src/utils/programs';
 import { createCatalogItem, createQuestion } from '../fixtures/questions';
 
 function createCsvFile(contents: string, name = 'preguntas.csv'): File {

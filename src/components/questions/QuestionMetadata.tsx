@@ -9,7 +9,7 @@ import {
     formatScaleLabel,
     formatVariantLabel,
 } from '../../utils/metadata';
-import { normalizarPrograma } from '../../utils/parser';
+import { normalizarPrograma } from '../../utils/programs';
 
 type StringSetter = Dispatch<SetStateAction<string>>;
 
@@ -240,4 +240,3 @@ export function QuestionMetadata({
         </div>
     );
 }
-

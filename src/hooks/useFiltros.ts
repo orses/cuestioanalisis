@@ -1,6 +1,6 @@
 import { useReducer, useMemo, useCallback, useEffect } from 'react';
 import type { Pregunta, CuestionarioMeta } from '../types';
-import { normalizarPrograma } from '../utils/parser';
+import { normalizarPrograma } from '../utils/programs';
 
 // ═══════════════════════════════════════════════════════
 // Motor de búsqueda lógica (extraído de App.tsx)

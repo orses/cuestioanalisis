@@ -4,7 +4,7 @@ import { detectarDuplicados } from './similarity';
 import { generarInsights } from './estadisticas';
 import { obtenerClaveEjercicioCuestionario, obtenerEtiquetaEjercicioCuestionario } from './ejercicios';
 import { formatAccessLabel, formatCallTypeLabel, formatExerciseTypeLabel, formatModelLabel, formatQuotaLabel, formatScaleLabel } from './metadata';
-import { normalizarPrograma } from './parser';
+import { normalizarPrograma } from './programs';
 
 /**
  * Genera un informe analítico completo del dataset en formato Markdown.

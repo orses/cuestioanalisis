@@ -3,6 +3,7 @@ import type { Pregunta } from '../types';
 import { generarComparativa } from '../utils/analytics';
 import {
     ANSWER_DISTRIBUTION_COLORS,
+    buildCategoricalColorMap,
     COMPARISON_GROUP_COLORS,
     COMPARISON_SERIES_COLORS,
 } from '../utils/colorPalettes';
@@ -148,24 +149,12 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
         );
     };
 
-    // Generar un color fijo para cada combinación de organismo+escala evitando colisiones
-    const colorMap = useMemo(() => {
-        const mapa = new Map<string, string>();
-        let colorIndex = 0;
-        
-        // Iteramos sobre todos los datos disponibles, recolectando combinaciones únicas
-        datos.forEach(d => {
-            const key = `${d.organismo}-${d.escala}`;
-            if (!mapa.has(key)) {
-                mapa.set(key, COMPARISON_GROUP_COLORS[colorIndex % COMPARISON_GROUP_COLORS.length]);
-                colorIndex++;
-            }
-        });
-        
-        return mapa;
-    }, [datos]);
+    const organismColorMap = useMemo(
+        () => buildCategoricalColorMap(datos.map(d => d.organismo), COMPARISON_GROUP_COLORS),
+        [datos]
+    );
 
-    const getColor = (orgEsc: string) => colorMap.get(orgEsc) || 'var(--border-primary)';
+    const getOrganismColor = (organismo: string) => organismColorMap.get(organismo) || 'var(--border-primary)';
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -202,11 +191,14 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
                     {[...datos].sort((a, b) => a.ejercicio.localeCompare(b.ejercicio)).map(d => {
                         const sel = seleccionados.includes(d.ejercicio);
                         const disabled = !sel && seleccionados.length >= 4;
-                        const colorOrgeSca = getColor(`${d.organismo}-${d.escala}`);
+                        const organismColor = getOrganismColor(d.organismo);
                         
                         return (
                             <div
                                 key={d.ejercicio}
+                                data-testid="comparison-exercise-card"
+                                data-organism={d.organismo}
+                                data-scale={d.escala}
                                 onClick={() => {
                                     if (!disabled) toggleSeleccion(d.ejercicio);
                                 }}
@@ -218,7 +210,7 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
                                         borderTop: `1px solid ${sel ? 'var(--accent-primary)' : 'var(--border-secondary)'}`,
                                         borderRight: `1px solid ${sel ? 'var(--accent-primary)' : 'var(--border-secondary)'}`,
                                         borderBottom: `1px solid ${sel ? 'var(--accent-primary)' : 'var(--border-secondary)'}`,
-                                        borderLeft: `4px solid ${colorOrgeSca}`,
+                                        borderLeft: `4px solid ${organismColor}`,
                                         backgroundColor: sel ? 'var(--bg-tertiary)' : 'var(--bg-primary)',
                                         cursor: disabled ? 'not-allowed' : 'pointer',
                                         opacity: disabled ? 0.6 : 1,

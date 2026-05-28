@@ -311,3 +311,44 @@ El catálogo podía traer datos en una columna llamada `informática básica`, p
 
 - Si aparecen nuevas denominaciones en el catálogo real, habrá que añadirlas como alias explícitos.
 - El modelo interno conserva el nombre histórico `informatica` para evitar una migración amplia.
+
+## 2026-05-28 — Carga diferida y color estable por organismo en comparativa
+
+### Qué se ha cambiado
+
+- `App.tsx` carga con `React.lazy` las vistas principales y los modales pesados.
+- `parser`, `Papa Parse` y el generador de informes se cargan bajo demanda desde las acciones que los necesitan.
+- La normalización de programas se ha extraído a `utils/programs.ts` para que filtros, resumen, tabla, metadatos e informes no arrastren el parser CSV/Excel.
+- El selector de `Comparativa` asigna el borde izquierdo por organismo, no por combinación de organismo y escala.
+- Se ha añadido un helper de paletas para asignar colores categóricos estables sin consumir colores duplicados en claves repetidas.
+- Se han añadido pruebas de componente y pruebas estructurales de bundle.
+
+### Por qué se ha cambiado
+
+La pestaña `Comparativa` podía mostrar organismos iguales con colores distintos cuando cambiaba la escala. Eso generaba una lectura visual incoherente. Además, el bundle inicial seguía cargando vistas y utilidades que solo son necesarias en acciones o pestañas concretas.
+
+### Contrato vigente
+
+- Todas las convocatorias del mismo organismo deben compartir exactamente el mismo color de borde izquierdo en `Comparativa`.
+- Cambiar la escala no debe cambiar el color visual del organismo.
+- Las vistas pesadas y los modales principales deben permanecer en carga diferida.
+- `parser.ts` no debe importarse estáticamente fuera del propio parser; los consumidores que solo normalizan aplicaciones deben usar `utils/programs.ts`.
+- Las categorías comparativas deben seguir evitando rojo, verde y amarillo como colores no semánticos.
+
+### Pruebas y verificaciones
+
+- `npm run test -- bundleStructure Comparativa colorPalettes parser`: 4 archivos de prueba, 19 pruebas superadas.
+- `npm run test`: 21 archivos de prueba, 67 pruebas superadas.
+- `npm run verify`: correcto.
+- `security:check`: correcto.
+- `npm audit` producción y completo: 0 vulnerabilidades.
+- `npm run lint`: correcto.
+- `npm run build`: correcto.
+- Tamaño del chunk inicial principal: de 1.103,76 kB antes de la microfase a 246,41 kB tras la carga diferida y la extracción de `utils/programs.ts`.
+- Chunks diferidos relevantes del build final: `parser` 109,57 kB, `papaparse.min` 19,79 kB y `BarChart` 372,39 kB.
+
+### Riesgos, límites y pendientes
+
+- La primera entrada a una vista diferida puede tener una espera breve de carga del chunk correspondiente.
+- `BarChart` sigue siendo el chunk diferido más grande por la dependencia de gráficas; no bloquea el arranque inicial.
+- La normalización de programas conserva el nombre histórico `normalizarPrograma` para evitar una migración amplia de dominio en esta microfase.
