@@ -1,7 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Pregunta } from '../../types';
-import { TablaPreguntas } from '../TablaPreguntas';
+import { QuestionDetail } from '../questions/QuestionDetail';
 
 interface ModalPreguntaProps {
     preguntaId: string;
@@ -28,6 +28,15 @@ export const ModalPregunta: React.FC<ModalPreguntaProps> = ({
     onFiltrarAño, onFiltrarEscala, onFiltrarAcceso, onFiltrarEjercicio,
 }) => {
     const pregunta = preguntas.find(p => p.id === preguntaId);
+    const [editandoId, setEditandoId] = useState<string | null>(null);
+    const [copiadoId, setCopiadoId] = useState<string | null>(null);
+    const [editMateria, setEditMateria] = useState('');
+    const [editBloque, setEditBloque] = useState('');
+    const [editTema, setEditTema] = useState('');
+    const [editApp, setEditApp] = useState('');
+    const [editCorrecta, setEditCorrecta] = useState('');
+    const [editEnunciado, setEditEnunciado] = useState('');
+    const [editObservaciones, setEditObservaciones] = useState('');
 
     const navList = preguntasNavegacion ?? [];
     const navIdx = navList.findIndex(p => p.id === preguntaId);
@@ -38,8 +47,16 @@ export const ModalPregunta: React.FC<ModalPreguntaProps> = ({
     useEffect(() => {
         if (!onNavegar) return;
         const handler = (e: KeyboardEvent) => {
-            if (e.key === 'ArrowLeft' && prevId) onNavegar(prevId);
-            if (e.key === 'ArrowRight' && nextId) onNavegar(nextId);
+            if (e.key === 'ArrowLeft' && prevId) {
+                setEditandoId(null);
+                setCopiadoId(null);
+                onNavegar(prevId);
+            }
+            if (e.key === 'ArrowRight' && nextId) {
+                setEditandoId(null);
+                setCopiadoId(null);
+                onNavegar(nextId);
+            }
         };
         window.addEventListener('keydown', handler);
         return () => window.removeEventListener('keydown', handler);
@@ -47,11 +64,61 @@ export const ModalPregunta: React.FC<ModalPreguntaProps> = ({
 
     if (!pregunta) return null;
 
+    const iniciarEdicion = () => {
+        setEditandoId(pregunta.id);
+        setEditMateria(pregunta.materia.toString());
+        setEditBloque(pregunta.bloque);
+        setEditTema(pregunta.tema);
+        setEditApp(pregunta.aplicacion);
+        setEditCorrecta(pregunta.correcta || '');
+        setEditEnunciado(pregunta.enunciado);
+        setEditObservaciones(pregunta.observaciones || '');
+    };
+
+    const guardar = () => {
+        onGuardarEdicion(pregunta.id, {
+            materia: editMateria,
+            bloque: editBloque,
+            tema: editTema,
+            aplicacion: editApp,
+            correcta: editCorrecta || null,
+            enunciado: editEnunciado,
+            observaciones: editObservaciones,
+        });
+        setEditandoId(null);
+    };
+
+    const handleCopiar = (event: React.MouseEvent<HTMLButtonElement>) => {
+        event.stopPropagation();
+
+        const lineas: string[] = [];
+        lineas.push(`${pregunta.numero_original}. ${pregunta.enunciado}`);
+        lineas.push('');
+
+        ['A', 'B', 'C', 'D'].forEach(letra => {
+            const opcion = pregunta.opciones[letra as keyof typeof pregunta.opciones];
+            if (opcion) {
+                lineas.push(`${letra}) ${opcion}`);
+            }
+        });
+
+        lineas.push('');
+        lineas.push(`Respuesta correcta: ${pregunta.anulada ? 'ANULADA' : (pregunta.correcta || 'No especificada')}`);
+
+        navigator.clipboard.writeText(lineas.join('\n')).then(() => {
+            setCopiadoId(pregunta.id);
+            setTimeout(() => setCopiadoId(null), 2000);
+        }).catch(err => {
+            console.error('Error al copiar al portapapeles: ', err);
+        });
+    };
+
     return (
         <div
             className="fixed inset-0 z-[100] backdrop-blur-sm"
             style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
             onClick={onCerrar}
+            data-testid="question-modal-overlay"
         >
             {/* Centrador — pointer-events-none para que el fondo cierre el modal */}
             <div className="flex justify-center pt-10 h-full pointer-events-none px-20">
@@ -64,11 +131,14 @@ export const ModalPregunta: React.FC<ModalPreguntaProps> = ({
                             onClick={e => {
                                 e.stopPropagation();
                                 if (prevId && onNavegar) {
+                                    setEditandoId(null);
+                                    setCopiadoId(null);
                                     onNavegar(prevId);
                                 }
                             }}
                             disabled={!prevId}
                             title="Anterior (←)"
+                            aria-label="Pregunta anterior"
                             className="absolute top-1/2 -translate-y-1/2 pointer-events-auto flex items-center justify-center rounded-full shadow-2xl transition-opacity disabled:opacity-20 disabled:cursor-not-allowed"
                             style={{
                                 right: '100%', marginRight: 10,
@@ -87,11 +157,14 @@ export const ModalPregunta: React.FC<ModalPreguntaProps> = ({
                             onClick={e => {
                                 e.stopPropagation();
                                 if (nextId && onNavegar) {
+                                    setEditandoId(null);
+                                    setCopiadoId(null);
                                     onNavegar(nextId);
                                 }
                             }}
                             disabled={!nextId}
                             title="Siguiente (→)"
+                            aria-label="Pregunta siguiente"
                             className="absolute top-1/2 -translate-y-1/2 pointer-events-auto flex items-center justify-center rounded-full shadow-2xl transition-opacity disabled:opacity-20 disabled:cursor-not-allowed"
                             style={{
                                 left: '100%', marginLeft: 10,
@@ -108,11 +181,14 @@ export const ModalPregunta: React.FC<ModalPreguntaProps> = ({
                     className="bg-card w-full max-h-[88vh] overflow-y-auto rounded-xl shadow-2xl border pointer-events-auto"
                     style={{ borderColor: 'var(--border-secondary)' }}
                     onClick={e => e.stopPropagation()}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="question-modal-title"
                 >
                     {/* Cabecera — una sola línea */}
                     <div className="sticky top-0 z-10 flex items-center gap-3 px-5 py-3 border-b bg-card" style={{ borderColor: 'var(--border-secondary)' }}>
                         <div className="flex items-center gap-2 min-w-0 flex-1">
-                            <h3 className="text-sm font-bold text-heading whitespace-nowrap">Detalle de la pregunta</h3>
+                            <h3 id="question-modal-title" className="text-sm font-bold text-heading whitespace-nowrap">Detalle de la pregunta</h3>
                             {cuestionarioNombre && (
                                 <>
                                     <span className="text-muted">·</span>
@@ -130,6 +206,7 @@ export const ModalPregunta: React.FC<ModalPreguntaProps> = ({
                         </div>
                         <button
                             onClick={onCerrar}
+                            aria-label="Cerrar detalle de la pregunta"
                             className="p-1.5 rounded-lg hover:bg-muted transition-colors flex-shrink-0"
                         >
                             <X className="w-5 h-5 text-muted hover:text-red-500" />
@@ -137,20 +214,46 @@ export const ModalPregunta: React.FC<ModalPreguntaProps> = ({
                     </div>
 
                     <div className="p-2 sm:p-4">
-                        <TablaPreguntas
-                            preguntas={[pregunta]}
-                            onGuardarEdicion={onGuardarEdicion}
-                            onFiltrarMateria={onFiltrarMateria}
-                            onFiltrarBloque={onFiltrarBloque}
-                            onFiltrarTema={onFiltrarTema}
-                            onFiltrarAplicacion={onFiltrarAplicacion}
-                            onFiltrarAño={onFiltrarAño}
-                            onFiltrarEscala={onFiltrarEscala}
-                            onFiltrarAcceso={onFiltrarAcceso}
-                            onFiltrarEjercicio={onFiltrarEjercicio}
-                            preguntaExpandida={preguntaId}
-                            soloDetalle={true}
-                        />
+                        <div className="bg-card rounded-xl shadow-sm border overflow-hidden" style={{ borderColor: 'var(--border-secondary)' }}>
+                            <div className="bg-muted px-4 py-3" style={{ borderBottom: '2px solid var(--accent-primary)' }}>
+                                <div className="max-w-5xl">
+                                    <QuestionDetail
+                                        pregunta={pregunta}
+                                        editing={editandoId === pregunta.id}
+                                        anyEditing={editandoId !== null}
+                                        copied={copiadoId === pregunta.id}
+                                        soloDetalle={true}
+                                        canEdit={true}
+                                        editMateria={editMateria}
+                                        editBloque={editBloque}
+                                        editTema={editTema}
+                                        editApp={editApp}
+                                        editCorrecta={editCorrecta}
+                                        editEnunciado={editEnunciado}
+                                        editObservaciones={editObservaciones}
+                                        setEditMateria={setEditMateria}
+                                        setEditBloque={setEditBloque}
+                                        setEditTema={setEditTema}
+                                        setEditApp={setEditApp}
+                                        setEditCorrecta={setEditCorrecta}
+                                        setEditEnunciado={setEditEnunciado}
+                                        setEditObservaciones={setEditObservaciones}
+                                        onCopy={handleCopiar}
+                                        onStartEdit={event => { event.stopPropagation(); iniciarEdicion(); }}
+                                        onSave={event => { event.stopPropagation(); guardar(); }}
+                                        onCancelEdit={event => { event.stopPropagation(); setEditandoId(null); }}
+                                        onFiltrarMateria={onFiltrarMateria}
+                                        onFiltrarBloque={onFiltrarBloque}
+                                        onFiltrarTema={onFiltrarTema}
+                                        onFiltrarAplicacion={onFiltrarAplicacion}
+                                        onFiltrarAño={onFiltrarAño}
+                                        onFiltrarEscala={onFiltrarEscala}
+                                        onFiltrarAcceso={onFiltrarAcceso}
+                                        onFiltrarEjercicio={onFiltrarEjercicio}
+                                    />
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>{/* fin modal card */}
                 </div>{/* fin wrapper relativo */}

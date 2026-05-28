@@ -83,7 +83,7 @@ export function formatModelLabel(value: string): string {
 
 export function formatVariantLabel(value: string): string {
     return value
-        .replace(/\bEXT\b/g, 'Extraordinario')
         .replace(/_/g, ' ')
+        .replace(/\bEXT\b/g, 'Extraordinario')
         .trim();
 }

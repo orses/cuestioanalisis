@@ -27,16 +27,8 @@ jobs:
 
       - run: npm ci --ignore-scripts
 
-      # Gate estricto: solo dependencias que llegan al navegador.
-      # Una vuln high+ en prod bloquea el deploy.
-      - name: Audit production dependencies
-        run: npm audit --audit-level=high --omit=dev
-
-      # Informativo: vulns en dev deps (vite, tsc, eslint…) no bloquean,
-      # pero las vemos en los logs para priorizarlas.
-      - name: Audit dev dependencies (informative)
-        run: npm audit --audit-level=high
-        continue-on-error: true
+      - name: Supply-chain security check
+        run: npm run security:check
 
       - run: npm run build
 

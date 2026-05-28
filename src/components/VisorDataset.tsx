@@ -4,6 +4,8 @@ import { obtenerEtiquetaEjercicioCuestionario } from '../utils/ejercicios';
 import { formatAccessLabel, formatCallTypeLabel, formatExerciseTypeLabel, formatQuotaLabel } from '../utils/metadata';
 import { normalizarPrograma } from '../utils/parser';
 import { Database, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { PaginationControls } from './common/PaginationControls';
+import { usePaginatedRows } from '../hooks/usePaginatedRows';
 
 interface VisorDatasetProps {
     preguntas: Pregunta[];
@@ -265,8 +267,8 @@ export const VisorDataset: React.FC<VisorDatasetProps> = ({ preguntas, onVerPreg
 
     // Ordenación
     const sortedPreguntas = useMemo(() => {
+        if (!sortConfig) return preguntas;
         const items = [...preguntas];
-        if (!sortConfig) return items;
         items.sort((a, b) => {
             let aV: string | number | null | undefined;
             let bV: string | number | null | undefined;
@@ -331,10 +333,15 @@ export const VisorDataset: React.FC<VisorDatasetProps> = ({ preguntas, onVerPreg
         return items;
     }, [preguntas, sortConfig]);
 
+    const pagination = usePaginatedRows(sortedPreguntas);
+    const preguntasVisibles = pagination.rows;
+    const mostrarPaginacion = sortedPreguntas.length > pagination.pageSize;
+
     const requestSort = (key: string) => {
         let direction: 'asc' | 'desc' = 'asc';
         if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') direction = 'desc';
         setSortConfig({ key, direction });
+        pagination.setPage(1);
     };
 
     const getSortIcon = (key: string) => {
@@ -480,6 +487,21 @@ export const VisorDataset: React.FC<VisorDatasetProps> = ({ preguntas, onVerPreg
                 </div>
             </div>
 
+            {mostrarPaginacion && (
+                <PaginationControls
+                    totalItems={pagination.totalItems}
+                    currentPage={pagination.currentPage}
+                    totalPages={pagination.totalPages}
+                    pageSize={pagination.pageSize}
+                    pageSizeOptions={pagination.pageSizeOptions}
+                    startIndex={pagination.startIndex}
+                    endIndex={pagination.endIndex}
+                    itemLabel="registros"
+                    onPageChange={pagination.setPage}
+                    onPageSizeChange={pagination.setPageSize}
+                />
+            )}
+
             {/* Scrollbar SUPERIOR */}
             <div
                 ref={topScrollRef}
@@ -561,7 +583,7 @@ export const VisorDataset: React.FC<VisorDatasetProps> = ({ preguntas, onVerPreg
                                 </td>
                             </tr>
                         ) : (
-                            sortedPreguntas.map((p) => (
+                            preguntasVisibles.map((p) => (
                                 <tr key={`${p.id_cuestionario}::${p.id}`}
                                     style={{
                                         borderBottom: '1px solid var(--border-secondary)',
@@ -601,6 +623,21 @@ export const VisorDataset: React.FC<VisorDatasetProps> = ({ preguntas, onVerPreg
                     </tbody>
                 </table>
             </div>
+
+            {mostrarPaginacion && (
+                <PaginationControls
+                    totalItems={pagination.totalItems}
+                    currentPage={pagination.currentPage}
+                    totalPages={pagination.totalPages}
+                    pageSize={pagination.pageSize}
+                    pageSizeOptions={pagination.pageSizeOptions}
+                    startIndex={pagination.startIndex}
+                    endIndex={pagination.endIndex}
+                    itemLabel="registros"
+                    onPageChange={pagination.setPage}
+                    onPageSizeChange={pagination.setPageSize}
+                />
+            )}
         </div>
     );
 };

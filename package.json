@@ -8,6 +8,14 @@
     "dev:local": "vite --host 127.0.0.1 --port 5173 --strictPort --open /cuestioanalisis/",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "security:lockfile": "node scripts/security/verify-npm-supply-chain.mjs",
+    "security:audit:prod": "npm audit --audit-level=high --omit=dev",
+    "security:audit:all": "npm audit --audit-level=high",
+    "security:check": "npm run security:lockfile && npm run security:audit:prod && npm run security:audit:all",
+    "install:safe": "npm ci --ignore-scripts && npm run security:check",
+    "verify": "npm run security:check && npm run test && npm run lint && npm run build",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -25,6 +33,8 @@
   "devDependencies": {
     "@eslint/js": "^9.39.1",
     "@tailwindcss/postcss": "^4.2.2",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/node": "^25.5.0",
     "@types/papaparse": "^5.5.2",
     "@types/react": "^19.2.7",
@@ -35,10 +45,12 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^16.5.0",
+    "jsdom": "^28.1.0",
     "postcss": "^8.5.15",
     "tailwindcss": "^4.2.1",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.48.0",
-    "vite": "^7.3.1"
+    "vite": "^7.3.1",
+    "vitest": "^4.1.7"
   }
 }
