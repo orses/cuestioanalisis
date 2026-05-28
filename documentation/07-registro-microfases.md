@@ -491,3 +491,39 @@ La vista seguía siendo demasiado densa y poco manejable con cinco tarjetas por 
 - En 8 columnas, los organismos con nombres largos pueden ocupar varias líneas dentro del chip; se prioriza no ocultar información.
 - El cálculo de contraste se aplica a colores HEX. Si un organismo usa un color CSS no HEX como fallback, el texto usa `var(--text-primary)`.
 - No se ha ejecutado `npm run verify` en esta microfase; se han ejecutado la prueba focalizada y la suite completa de Vitest.
+
+## 2026-05-28 - Jerarquía visual y persistencia en comparativa
+
+### Qué se ha cambiado
+
+- Se ha rebajado el peso tipográfico de títulos, controles y chips de comparativa para evitar una interfaz dominada por negritas.
+- El chip de organismo usa ahora una tinta clara derivada del color del borde izquierdo, no el color pleno.
+- Se elimina el chip textual `Seleccionada`; la selección queda indicada por el tic, el borde y el fondo activo.
+- La preferencia `Tarjetas por fila` se guarda en `localStorage` y se restaura al volver a montar la vista.
+- Se añade un contrato CSS global para que los elementos HTML dentro de la aplicación usen un radio visual de `3px`.
+- Los rectángulos SVG de gráficas quedan cubiertos por una regla global `rx`/`ry` de `3px`.
+- Las barras de `AnalisisAnuladas` y `Comparativa` pasan a radio `3px` en su configuración Recharts.
+
+### Por qué se ha cambiado
+
+La pantalla de comparativa seguía teniendo demasiado ruido visual: demasiada negrita, chips muy dominantes y radios excesivamente redondeados. Además, al moverse por pestañas se perdía la cantidad de columnas elegida, lo que obligaba a reconfigurar la vista.
+
+### Contrato vigente
+
+- La selección de una convocatoria debe entenderse por el tic, el borde y el fondo activo, sin badge textual adicional.
+- El chip de organismo debe usar una tinta clara basada en el color corporativo resuelto para el borde izquierdo.
+- `Tarjetas por fila` debe persistir en `localStorage` con la clave `comparativa.tarjetasPorFila`.
+- Al montar `Comparativa`, una preferencia persistida válida debe sustituir el valor por defecto.
+- La interfaz HTML de la aplicación debe quedar limitada visualmente a radio `3px`.
+- Los rectángulos SVG de gráficas deben usar `rx: 3px` y `ry: 3px`.
+
+### Pruebas y verificaciones
+
+- `npm run test -- tests/components/Comparativa.test.tsx tests/styles/borderRadius.test.ts`: 2 archivos de prueba, 7 pruebas superadas.
+- `npm run test`: 23 archivos de prueba, 77 pruebas superadas.
+
+### Riesgos, límites y pendientes
+
+- La regla global de radio utiliza `!important` para imponerse a clases Tailwind e inline styles existentes; si una futura vista necesita radios distintos, deberá justificar una excepción explícita.
+- El tono claro del organismo se calcula para colores HEX. Si el color no es HEX, se usa el fondo terciario como fallback.
+- No se ha ejecutado `npm run verify` en esta microfase; se han ejecutado la prueba focalizada y la suite completa de Vitest.

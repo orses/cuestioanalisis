@@ -126,7 +126,18 @@ input[type="reset"] {
 *:focus-visible {
     outline: 3px solid var(--focus-ring);
     outline-offset: 2px;
-    border-radius: 2px;
+    border-radius: 3px;
+}
+
+/* Contrato visual global: radios sobrios en toda la interfaz. */
+:where(#root, #root *, #root *::before, #root *::after) {
+    border-radius: 3px !important;
+}
+
+/* Los rectángulos SVG de gráficas también deben seguir el radio global. */
+:where(#root svg rect) {
+    rx: 3px;
+    ry: 3px;
 }
 
 /* Skip-link para lectores de pantalla */

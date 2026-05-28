@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Pregunta } from '../types';
 import { generarComparativa } from '../utils/analytics';
 import {
@@ -29,6 +29,7 @@ type AgrupacionComparativa = 'materias' | 'bloques' | 'temas' | 'programas';
 type ChartRow = Record<string, string | number> & { name: string; _total: number };
 const TARJETAS_POR_FILA = [1, 2, 3, 4, 5, 6, 8] as const;
 type TarjetasPorFila = typeof TARJETAS_POR_FILA[number];
+const TARJETAS_POR_FILA_STORAGE_KEY = 'comparativa.tarjetasPorFila';
 
 type MetadataBadge = {
     key: string;
@@ -37,21 +38,49 @@ type MetadataBadge = {
     tone?: 'organism' | 'default';
 };
 
-function getReadableTextColor(backgroundColor: string): string {
+function parseHexColor(backgroundColor: string): [number, number, number] | null {
     const hex = backgroundColor.trim();
     const match = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(hex);
 
-    if (!match) return 'var(--text-primary)';
+    if (!match) return null;
 
     const normalized = match[1].length === 3
         ? match[1].split('').map(char => `${char}${char}`).join('')
         : match[1];
-    const red = parseInt(normalized.slice(0, 2), 16);
-    const green = parseInt(normalized.slice(2, 4), 16);
-    const blue = parseInt(normalized.slice(4, 6), 16);
+
+    return [
+        parseInt(normalized.slice(0, 2), 16),
+        parseInt(normalized.slice(2, 4), 16),
+        parseInt(normalized.slice(4, 6), 16),
+    ];
+}
+
+function getSubtleColorTone(color: string, alpha: number): string {
+    const rgb = parseHexColor(color);
+    if (!rgb) return 'var(--bg-tertiary)';
+
+    return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${alpha})`;
+}
+
+function getReadableTextColor(backgroundColor: string): string {
+    const rgb = parseHexColor(backgroundColor);
+    if (!rgb) return 'var(--text-primary)';
+
+    const [red, green, blue] = rgb;
     const luminance = (0.299 * red + 0.587 * green + 0.114 * blue) / 255;
 
-    return luminance > 0.58 ? '#0f172a' : '#ffffff';
+    return luminance > 0.58 ? '#0f172a' : backgroundColor;
+}
+
+function isTarjetasPorFila(value: number): value is TarjetasPorFila {
+    return TARJETAS_POR_FILA.includes(value as TarjetasPorFila);
+}
+
+function getInitialTarjetasPorFila(): TarjetasPorFila {
+    if (typeof window === 'undefined') return 3;
+
+    const storedValue = Number(window.localStorage.getItem(TARJETAS_POR_FILA_STORAGE_KEY));
+    return isTarjetasPorFila(storedValue) ? storedValue : 3;
 }
 
 export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
@@ -59,7 +88,11 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
     const [seleccionados, setSeleccionados] = useState<string[]>([]);
     const [vistaRadar, setVistaRadar] = useState(false);
     const [radarAgrupacion, setRadarAgrupacion] = useState<AgrupacionComparativa>('materias');
-    const [tarjetasPorFila, setTarjetasPorFila] = useState<TarjetasPorFila>(3);
+    const [tarjetasPorFila, setTarjetasPorFila] = useState<TarjetasPorFila>(getInitialTarjetasPorFila);
+
+    useEffect(() => {
+        window.localStorage.setItem(TARJETAS_POR_FILA_STORAGE_KEY, String(tarjetasPorFila));
+    }, [tarjetasPorFila]);
 
     const toggleSeleccion = (ej: string) => {
         setSeleccionados(prev =>
@@ -126,10 +159,10 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
 
         return (
             <div style={{
-                padding: '16px', borderRadius: '10px',
+                padding: '16px', borderRadius: '3px',
                 backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-secondary)',
             }}>
-                <h4 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '16px' }}>
+                <h4 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>
                     {title}
                 </h4>
                 <div style={{ width: '100%', height: chartHeight, fontSize: '12px' }}>
@@ -154,7 +187,7 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
                                 contentStyle={{
                                     backgroundColor: 'var(--bg-secondary)',
                                     border: '1px solid var(--border-secondary)',
-                                    borderRadius: '8px',
+                                    borderRadius: '3px',
                                     color: 'var(--text-primary)'
                                 }}
                             />
@@ -164,7 +197,7 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
                                     key={d.ejercicio}
                                     dataKey={d.ejercicio}
                                     fill={COMPARISON_SERIES_COLORS[index % COMPARISON_SERIES_COLORS.length]}
-                                    radius={[0, 4, 4, 0]}
+                                    radius={[0, 3, 3, 0]}
                                     animationDuration={1000}
                                 >
                                     <LabelList
@@ -196,13 +229,13 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             {/* Selector de ejercicios */}
             <div style={{
-                padding: '16px', borderRadius: '10px',
+                padding: '16px', borderRadius: '3px',
                 backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-secondary)',
             }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', marginBottom: '12px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <GitCompare className="w-5 h-5" style={{ color: 'var(--accent-primary)' }} />
-                        <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                        <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>
                             Seleccionar convocatorias a comparar
                         </h3>
                         <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginLeft: '8px' }}>
@@ -217,7 +250,7 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
                             data-testid="comparison-cards-per-row"
                             style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
                         >
-                            <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-tertiary)', marginRight: '2px' }}>
+                            <span style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-tertiary)', marginRight: '2px' }}>
                                 Tarjetas por fila
                             </span>
                             {TARJETAS_POR_FILA.map(valor => (
@@ -230,12 +263,12 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
                                     style={{
                                         width: '28px',
                                         height: '28px',
-                                        borderRadius: '6px',
+                                        borderRadius: '3px',
                                         border: `1px solid ${tarjetasPorFila === valor ? 'var(--accent-primary)' : 'var(--border-primary)'}`,
                                         backgroundColor: tarjetasPorFila === valor ? 'var(--accent-primary)' : 'var(--bg-secondary)',
                                         color: tarjetasPorFila === valor ? '#fff' : 'var(--text-primary)',
                                         fontSize: '12px',
-                                        fontWeight: 800,
+                                        fontWeight: tarjetasPorFila === valor ? 600 : 500,
                                         cursor: 'pointer',
                                     }}
                                 >
@@ -251,7 +284,7 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
                                 style={{
                                     fontSize: '11px', fontWeight: 600, color: 'var(--accent-danger)',
                                     backgroundColor: 'transparent', border: 'none', cursor: 'pointer',
-                                    padding: '4px 8px', borderRadius: '4px'
+                                    padding: '4px 8px', borderRadius: '3px'
                                 }}
                             >
                                 Desmarcar todo
@@ -310,7 +343,7 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
                                         alignItems: 'start',
                                         gap: '8px',
                                         padding: '9px 10px',
-                                        borderRadius: '8px',
+                                        borderRadius: '3px',
                                         borderTop: `1px solid ${sel ? 'var(--accent-primary)' : 'var(--border-secondary)'}`,
                                         borderRight: `1px solid ${sel ? 'var(--accent-primary)' : 'var(--border-secondary)'}`,
                                         borderBottom: `1px solid ${sel ? 'var(--accent-primary)' : 'var(--border-secondary)'}`,
@@ -325,7 +358,7 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
                                     }}
                                 >
                                     <span style={{
-                                        width: '20px', height: '20px', borderRadius: '6px',
+                                        width: '20px', height: '20px', borderRadius: '3px',
                                         border: `2px solid ${sel ? 'var(--accent-primary)' : 'var(--border-primary)'}`,
                                         backgroundColor: sel ? 'var(--accent-primary)' : 'transparent',
                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -334,45 +367,29 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
                                         {sel && <Check className="w-3 h-3" style={{ color: '#fff', strokeWidth: 3 }} />}
                                     </span>
                                     <span style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: 0 }}>
-                                        <span style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '6px' }}>
-                                            <span
-                                                data-testid="comparison-exercise-title"
-                                                title={d.ejercicio}
-                                                style={{
-                                                    fontSize: '12px',
-                                                    fontWeight: 800,
-                                                    color: 'var(--text-primary)',
-                                                    lineHeight: 1.35,
-                                                    overflowWrap: 'anywhere',
-                                                    whiteSpace: 'normal',
-                                                }}
-                                            >
-                                                {d.ejercicio}
-                                            </span>
-                                            {sel && (
-                                                <span
-                                                    data-testid="comparison-selected-badge"
-                                                    style={{
-                                                        flexShrink: 0,
-                                                        fontSize: '9px',
-                                                        fontWeight: 800,
-                                                        color: '#fff',
-                                                        backgroundColor: 'var(--accent-primary)',
-                                                        borderRadius: '999px',
-                                                        padding: '1px 6px',
-                                                        lineHeight: 1.4,
-                                                    }}
-                                                >
-                                                    Seleccionada
-                                                </span>
-                                            )}
+                                        <span
+                                            data-testid="comparison-exercise-title"
+                                            title={d.ejercicio}
+                                            style={{
+                                                fontSize: '12px',
+                                                fontWeight: 600,
+                                                color: 'var(--text-primary)',
+                                                lineHeight: 1.35,
+                                                overflowWrap: 'anywhere',
+                                                whiteSpace: 'normal',
+                                            }}
+                                        >
+                                            {d.ejercicio}
                                         </span>
                                         <span style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
                                             {metadataItems.map(item => {
                                                 const isOrganismBadge = item.tone === 'organism';
                                                 const badgeBackground = isOrganismBadge
-                                                    ? organismColor
+                                                    ? getSubtleColorTone(organismColor, 0.16)
                                                     : sel ? 'var(--bg-secondary)' : 'var(--bg-tertiary)';
+                                                const badgeBorder = isOrganismBadge
+                                                    ? getSubtleColorTone(organismColor, 0.36)
+                                                    : 'var(--border-secondary)';
                                                 const badgeColor = isOrganismBadge
                                                     ? getReadableTextColor(organismColor)
                                                     : 'var(--text-secondary)';
@@ -389,12 +406,12 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
                                                             minHeight: '19px',
                                                             maxWidth: '100%',
                                                             padding: '1px 6px',
-                                                            borderRadius: '6px',
-                                                            border: `1px solid ${isOrganismBadge ? organismColor : 'var(--border-secondary)'}`,
+                                                            borderRadius: '3px',
+                                                            border: `1px solid ${badgeBorder}`,
                                                             backgroundColor: badgeBackground,
                                                             color: badgeColor,
                                                             fontSize: '10.5px',
-                                                            fontWeight: 800,
+                                                            fontWeight: isOrganismBadge ? 600 : 500,
                                                             lineHeight: 1.25,
                                                             overflowWrap: 'anywhere',
                                                             whiteSpace: 'normal',

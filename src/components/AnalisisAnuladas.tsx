@@ -123,12 +123,12 @@ export const AnalisisAnuladas: React.FC<Props> = ({ preguntas }) => {
                                 itemStyle={{ fontSize: '13px' }}
                             />
                             <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                            <Bar yAxisId="left" dataKey="Cant. Anuladas" name="Volumen Total" radius={[4, 4, 0, 0]}>
+                            <Bar yAxisId="left" dataKey="Cant. Anuladas" name="Volumen Total" radius={[3, 3, 0, 0]}>
                                 {dataGrafico.map((_entry, index) => (
                                     <Cell key={`cell-vol-${index}`} fill={'var(--accent-danger)'} opacity={0.8} />
                                 ))}
                             </Bar>
-                            <Bar yAxisId="right" dataKey="Tasa Impugnación (%)" name="Tasa de Impugnación %" radius={[4, 4, 0, 0]}>
+                            <Bar yAxisId="right" dataKey="Tasa Impugnación (%)" name="Tasa de Impugnación %" radius={[3, 3, 0, 0]}>
                                 {dataGrafico.map((_entry, index) => (
                                     <Cell key={`cell-tasa-${index}`} fill={'var(--accent-warning)'} opacity={0.6} />
                                 ))}

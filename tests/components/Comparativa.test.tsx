@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { Comparativa } from '../../src/components/Comparativa';
 import { getOrganismBrandColor } from '../../src/utils/organismBrandColors';
 import { createQuestion } from '../fixtures/questions';
@@ -9,6 +9,10 @@ function getCards(): HTMLElement[] {
 }
 
 describe('Comparativa', () => {
+    beforeEach(() => {
+        window.localStorage.clear();
+    });
+
     it('usa el mismo borde izquierdo para convocatorias del mismo organismo aunque cambie la escala', () => {
         render(
             <Comparativa
@@ -133,18 +137,42 @@ describe('Comparativa', () => {
 
         expect(grid).toHaveStyle({ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' });
         expect(threeCardsButton).toHaveAttribute('aria-pressed', 'true');
+        expect(threeCardsButton).toHaveStyle({ fontWeight: '600' });
 
         fireEvent.click(eightCardsButton);
 
         expect(grid).toHaveStyle({ gridTemplateColumns: 'repeat(8, minmax(0, 1fr))', minWidth: '1256px' });
         expect(eightCardsButton).toHaveAttribute('aria-pressed', 'true');
         expect(threeCardsButton).toHaveAttribute('aria-pressed', 'false');
+        expect(eightCardsButton).toHaveStyle({ fontWeight: '600' });
+        expect(threeCardsButton).toHaveStyle({ fontWeight: '500' });
 
         fireEvent.click(sixCardsButton);
 
         expect(grid).toHaveStyle({ gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', minWidth: '940px' });
         expect(sixCardsButton).toHaveAttribute('aria-pressed', 'true');
         expect(eightCardsButton).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    it('persiste la cantidad de tarjetas por fila al volver a montar la vista', () => {
+        const preguntas = [
+            createQuestion({ id: 'p1', id_cuestionario: 'Q1' }),
+            createQuestion({ id: 'p2', id_cuestionario: 'Q2' }),
+        ];
+        const { unmount } = render(<Comparativa preguntas={preguntas} />);
+
+        fireEvent.click(screen.getByRole('button', { name: '8 tarjetas por fila' }));
+
+        expect(window.localStorage.getItem('comparativa.tarjetasPorFila')).toBe('8');
+
+        unmount();
+        render(<Comparativa preguntas={preguntas} />);
+
+        expect(screen.getByTestId('comparison-exercise-grid')).toHaveStyle({
+            gridTemplateColumns: 'repeat(8, minmax(0, 1fr))',
+            minWidth: '1256px',
+        });
+        expect(screen.getByRole('button', { name: '8 tarjetas por fila' })).toHaveAttribute('aria-pressed', 'true');
     });
 
     it('muestra badges compactos sin rótulo visible y marca claramente la tarjeta seleccionada', () => {
@@ -187,16 +215,19 @@ describe('Comparativa', () => {
         expect(organismBadge).toHaveAttribute('data-label', 'Organismo');
         expect(organismBadge).toHaveAttribute('title', 'Organismo: INAP');
         expect(organismBadge).toHaveStyle({
-            backgroundColor: getOrganismBrandColor('INAP'),
-            borderColor: getOrganismBrandColor('INAP'),
+            backgroundColor: 'rgba(242, 195, 0, 0.16)',
+            borderColor: 'rgba(242, 195, 0, 0.36)',
             color: '#0f172a',
+            fontWeight: '600',
+            borderRadius: '3px',
         });
+        expect(title).toHaveStyle({ fontWeight: '600' });
 
         fireEvent.click(card);
 
         expect(card).toHaveAttribute('aria-pressed', 'true');
         expect(card).toHaveAttribute('data-selected', 'true');
-        expect(screen.getByTestId('comparison-selected-badge')).toHaveTextContent('Seleccionada');
+        expect(screen.queryByText('Seleccionada')).not.toBeInTheDocument();
         expect(card.style.boxShadow).toContain('var(--accent-primary)');
     });
 
