@@ -1,11 +1,63 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { Comparativa } from '../../src/components/Comparativa';
-import { getOrganismBrandColor } from '../../src/utils/organismBrandColors';
+import { getOrganismBrandColor, ORGANISM_BRAND_COLORS } from '../../src/utils/organismBrandColors';
 import { createQuestion } from '../fixtures/questions';
 
 function getCards(): HTMLElement[] {
     return screen.getAllByTestId('comparison-exercise-card');
+}
+
+function parseCssColor(value: string): [number, number, number, number] {
+    const hexMatch = /^#([0-9a-f]{6})$/i.exec(value.trim());
+    if (hexMatch) {
+        return [
+            parseInt(hexMatch[1].slice(0, 2), 16),
+            parseInt(hexMatch[1].slice(2, 4), 16),
+            parseInt(hexMatch[1].slice(4, 6), 16),
+            1,
+        ];
+    }
+
+    const rgbMatch = /^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([0-9.]+))?\)$/i.exec(value.trim());
+    if (!rgbMatch) throw new Error(`Color CSS no soportado en prueba: ${value}`);
+
+    return [
+        Number(rgbMatch[1]),
+        Number(rgbMatch[2]),
+        Number(rgbMatch[3]),
+        rgbMatch[4] ? Number(rgbMatch[4]) : 1,
+    ];
+}
+
+function blendColor(foreground: [number, number, number, number], background: [number, number, number]): [number, number, number] {
+    const alpha = foreground[3];
+
+    return [
+        Math.round(foreground[0] * alpha + background[0] * (1 - alpha)),
+        Math.round(foreground[1] * alpha + background[1] * (1 - alpha)),
+        Math.round(foreground[2] * alpha + background[2] * (1 - alpha)),
+    ];
+}
+
+function getRelativeLuminance([red, green, blue]: [number, number, number]): number {
+    const channels = [red, green, blue].map(channel => {
+        const normalized = channel / 255;
+        return normalized <= 0.03928
+            ? normalized / 12.92
+            : ((normalized + 0.055) / 1.055) ** 2.4;
+    });
+
+    return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+}
+
+function getContrastRatio(foreground: [number, number, number], background: [number, number, number]): number {
+    const foregroundLuminance = getRelativeLuminance(foreground);
+    const backgroundLuminance = getRelativeLuminance(background);
+    const lighter = Math.max(foregroundLuminance, backgroundLuminance);
+    const darker = Math.min(foregroundLuminance, backgroundLuminance);
+
+    return (lighter + 0.05) / (darker + 0.05);
 }
 
 describe('Comparativa', () => {
@@ -235,6 +287,58 @@ describe('Comparativa', () => {
         expect(selectedCardStyle).toContain('background-color: var(--bg-tertiary)');
         expect(selectedCardStyle).toContain('box-shadow: none');
         expect(selectedCardStyle).not.toContain('box-shadow: 0 0 0 2px var(--accent-primary)');
+    });
+
+    it('mantiene contraste suficiente en todos los badges de organismo corporativo', () => {
+        const organisms = Object.keys(ORGANISM_BRAND_COLORS)
+            .map(organism => organism === 'AYTO AVILA' ? 'AYTO ÁVILA' : organism);
+
+        render(
+            <Comparativa
+                preguntas={organisms.map((organism, index) => (
+                    createQuestion({
+                        id: `contrast_${index}_1`,
+                        id_cuestionario: `C${String(index).padStart(4, '0')}`,
+                        metadatos: {
+                            organismo: organism,
+                            escala: 'AUX',
+                            año: 2020 + index,
+                            acceso: 'LI',
+                            tipo: 'SEG',
+                        },
+                    })
+                ))}
+            />
+        );
+
+        const badges = screen.getAllByTestId('comparison-metadata-badge-organism');
+        const cardSurface: [number, number, number] = [248, 250, 252];
+
+        expect(badges).toHaveLength(organisms.length);
+
+        badges.forEach(badge => {
+            const background = parseCssColor(badge.style.backgroundColor);
+            const text = parseCssColor(badge.style.color).slice(0, 3) as [number, number, number];
+            const blendedBackground = blendColor(background, cardSurface);
+
+            expect(getContrastRatio(text, blendedBackground)).toBeGreaterThanOrEqual(4.5);
+        });
+
+        const camBadge = badges.find(badge => badge.textContent === 'CAM');
+        const avilaBadge = badges.find(badge => badge.textContent === 'AYTO ÁVILA');
+
+        expect(camBadge).toBeDefined();
+        expect(avilaBadge).toBeDefined();
+        expect(camBadge as HTMLElement).toHaveStyle({
+            backgroundColor: 'rgba(255, 0, 0, 0.16)',
+            borderColor: 'rgba(255, 0, 0, 0.36)',
+            color: '#8c0000',
+        });
+        expect(avilaBadge as HTMLElement).toHaveStyle({
+            backgroundColor: 'rgba(178, 31, 45, 0.16)',
+            borderColor: 'rgba(178, 31, 45, 0.36)',
+            color: '#621119',
+        });
     });
 
     it('mantiene el límite de cuatro convocatorias seleccionadas', () => {

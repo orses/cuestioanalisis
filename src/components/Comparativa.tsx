@@ -62,6 +62,10 @@ function getSubtleColorTone(color: string, alpha: number): string {
     return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${alpha})`;
 }
 
+function toHexColorComponent(value: number): string {
+    return value.toString(16).padStart(2, '0');
+}
+
 function getReadableTextColor(backgroundColor: string): string {
     const rgb = parseHexColor(backgroundColor);
     if (!rgb) return 'var(--text-primary)';
@@ -69,7 +73,10 @@ function getReadableTextColor(backgroundColor: string): string {
     const [red, green, blue] = rgb;
     const luminance = (0.299 * red + 0.587 * green + 0.114 * blue) / 255;
 
-    return luminance > 0.58 ? '#0f172a' : backgroundColor;
+    if (luminance > 0.58 || luminance < 0.08) return '#0f172a';
+
+    const contrastRgb = rgb.map(channel => Math.round(channel * 0.55));
+    return `#${contrastRgb.map(toHexColorComponent).join('')}`;
 }
 
 function isTarjetasPorFila(value: number): value is TarjetasPorFila {

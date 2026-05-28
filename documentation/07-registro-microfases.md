@@ -559,3 +559,36 @@ El estado seleccionado resultaba demasiado basto por la suma de contorno azul, s
 
 - La selección queda más discreta; si en pruebas de uso se detecta poca visibilidad, deberá reforzarse con una señal neutra, no con borde ni sombra azul.
 - No se ha ejecutado `npm run verify` en esta microfase; se han ejecutado la prueba focalizada y la suite completa de Vitest.
+
+## 2026-05-28 - Contraste de badges de organismo
+
+### Qué se ha cambiado
+
+- Se ha reforzado el color de texto de los badges de organismo cuando el color corporativo es intenso.
+- El fondo del badge sigue usando una tinta clara derivada del borde izquierdo del organismo.
+- CAM pasa a mostrar texto rojo oscuro sobre fondo rojo claro.
+- AYTO ÁVILA queda cubierto explícitamente con texto rojo oscuro sobre fondo rojo claro.
+- La prueba focalizada recorre todos los organismos con color corporativo registrado y exige contraste mínimo de `4.5:1` sobre el fondo claro de tarjeta.
+
+### Por qué se ha cambiado
+
+Algunos colores corporativos intensos, especialmente rojos como CAM o AYTO ÁVILA, perdían legibilidad cuando el texto usaba el mismo color que el borde izquierdo sobre un fondo tintado. Era necesario conservar la señal cromática del organismo sin sacrificar lectura.
+
+### Contrato vigente
+
+- El badge de organismo debe mantener un fondo claro calculado a partir del color corporativo.
+- El texto del badge debe oscurecerse cuando el color corporativo no ofrece suficiente jerarquía visual.
+- Los organismos con colores claros deben seguir usando texto oscuro neutro.
+- El contraste del texto del badge de organismo debe ser, como mínimo, `4.5:1` sobre el fondo claro esperado de la tarjeta.
+- CAM y AYTO ÁVILA quedan como casos explícitos de referencia para rojos intensos.
+
+### Pruebas y verificaciones
+
+- `npm run test -- tests/components/Comparativa.test.tsx`: 1 archivo de prueba, 7 pruebas superadas.
+- `npm run test`: 23 archivos de prueba, 78 pruebas superadas.
+
+### Riesgos, límites y pendientes
+
+- La comprobación de contraste toma como superficie base el fondo claro de tarjeta `#f8fafc`.
+- Si se rediseña el modo oscuro, habrá que revisar el contraste del badge sobre superficies oscuras.
+- No se ha ejecutado `npm run verify` en esta microfase; se han ejecutado la prueba focalizada y la suite completa de Vitest.
