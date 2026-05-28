@@ -241,3 +241,73 @@ Las pestañas `Ejercicios` y `Tabla` renderizaban todos los resultados filtrados
 - La paginación reduce el coste de render inicial, pero no virtualiza filas; si se necesitan miles de filas visibles simultáneamente, convendrá incorporar virtualización.
 - La ordenación de `VisorDataset` sigue ordenando todo el conjunto filtrado; es correcto funcionalmente, aunque podría optimizarse si el dataset crece mucho más.
 - El aviso de chunk grande de Vite sigue pendiente y no forma parte de esta microfase.
+
+## 2026-05-28 — Paletas categóricas sin colores semánticos
+
+### Qué se ha cambiado
+
+- La pestaña `Comparativa` usa una paleta categórica fría y morada para barras, radar, bordes de convocatorias y distribución A/B/C/D.
+- Las materias dejan de usar rojo, verde o amarillo como identificadores de categoría.
+- `seguridad` deja de mostrarse en rojo y pasa a morado.
+- Los KPIs no semánticos de `Resumen`, como materias y bloques, dejan de usar verde o amarillo.
+- Se ha creado `colorPalettes.ts` para centralizar paletas compartidas sin romper Fast Refresh.
+- Se han añadido pruebas para impedir que las paletas categóricas vuelvan a ocupar rangos de rojo, verde o amarillo.
+
+### Por qué se ha cambiado
+
+Rojo, verde y amarillo tienen una carga semántica fuerte: error, éxito, peligro, aviso o estado. Usarlos como simples categorías en gráficas o materias podía inducir a interpretaciones incorrectas.
+
+### Contrato vigente
+
+- Rojo, verde y amarillo quedan reservados para estados semánticos.
+- Las categorías comparativas usan azul, cian, morado, fucsia o grises neutros.
+- Las materias usan una paleta categórica no semántica.
+- `Anuladas` puede seguir usando rojo porque representa una condición real.
+
+### Pruebas y verificaciones
+
+- `npm run test -- colorPalettes`: 1 archivo de prueba, 3 pruebas superadas.
+- `npm run test`: 19 archivos de prueba, 61 pruebas superadas.
+- `npm run verify`: correcto.
+
+### Riesgos, límites y pendientes
+
+- Quedan otros paneles analíticos donde rojo, verde o amarillo sí expresan tendencia, alerta o estado; no se han cambiado por tener significado semántico.
+- La paleta categórica se ha ajustado por código, no mediante un sistema de temas completo.
+
+## 2026-05-28 — Cabecera informática básica en catálogo
+
+### Qué se ha cambiado
+
+- El parser del catálogo acepta `informática básica` como alias de `informatica`.
+- También se aceptan variantes sin tilde y con guion bajo:
+  - `informatica basica`;
+  - `informática_básica`;
+  - `informatica_basica`.
+- La cabecera visible del catálogo pasa de `Informática` a `Informática básica`.
+- Se amplía el ancho por defecto de esa columna.
+
+### Por qué se ha cambiado
+
+El catálogo podía traer datos en una columna llamada `informática básica`, pero el parser solo buscaba `informatica` o `informática`. Por eso los valores existían en origen, pero no se reflejaban en la tabla.
+
+### Contrato vigente
+
+- Todas las variantes admitidas de `informática básica` alimentan el campo interno `informatica`.
+- La tabla del catálogo sigue usando el campo `informatica`, pero lo presenta como `Informática básica`.
+- La normalización de catálogo sigue agrupando filas y acumulando banderas booleanas.
+
+### Pruebas y verificaciones
+
+- `npm run test -- parser colorPalettes`: 2 archivos de prueba, 14 pruebas superadas.
+- `npm run test`: 19 archivos de prueba, 62 pruebas superadas.
+- `npm run verify`: correcto.
+- `security:check`: correcto.
+- `npm audit` producción y completo: 0 vulnerabilidades.
+- `npm run lint`: correcto.
+- `npm run build`: correcto.
+
+### Riesgos, límites y pendientes
+
+- Si aparecen nuevas denominaciones en el catálogo real, habrá que añadirlas como alias explícitos.
+- El modelo interno conserva el nombre histórico `informatica` para evitar una migración amplia.

@@ -1,6 +1,11 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import type { Pregunta } from '../types';
 import { generarComparativa } from '../utils/analytics';
+import {
+    ANSWER_DISTRIBUTION_COLORS,
+    COMPARISON_GROUP_COLORS,
+    COMPARISON_SERIES_COLORS,
+} from '../utils/colorPalettes';
 import { GitCompare, Check } from 'lucide-react';
 import {
     ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Bar, LabelList,
@@ -57,9 +62,6 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
         datosSeleccionados.forEach(d => Object.keys(d.programas).forEach(p => set.add(p)));
         return Array.from(set).sort();
     }, [datosSeleccionados]);
-
-    // Colores fijos para hasta 4 convocatorias (los de los KPIs generales)
-    const COLORES_CONVO = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'];
 
     // Funciones para generar la data plana que Reactharts necesita
     const formatData = useCallback((itemSet: string[], type: AgrupacionComparativa): ChartRow[] => {
@@ -125,7 +127,7 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
                                 <Bar
                                     key={d.ejercicio}
                                     dataKey={d.ejercicio}
-                                    fill={COLORES_CONVO[index % COLORES_CONVO.length]}
+                                    fill={COMPARISON_SERIES_COLORS[index % COMPARISON_SERIES_COLORS.length]}
                                     radius={[0, 4, 4, 0]}
                                     animationDuration={1000}
                                 >
@@ -149,29 +151,13 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
     // Generar un color fijo para cada combinación de organismo+escala evitando colisiones
     const colorMap = useMemo(() => {
         const mapa = new Map<string, string>();
-        // Paleta base de colores bien diferenciados (tonos vivos y legibles)
-        const PALETA = [
-            'hsl(210, 70%, 45%)', // Azul
-            'hsl(150, 70%, 35%)', // Verde oscuro
-            'hsl(330, 70%, 50%)', // Rosa oscuro
-            'hsl(30, 90%, 50%)',  // Naranja
-            'hsl(270, 60%, 55%)', // Morado
-            'hsl(190, 80%, 40%)', // Cian oscuro
-            'hsl(0, 70%, 50%)',   // Rojo
-            'hsl(90, 60%, 40%)',  // Verde lima oscuro
-            'hsl(300, 60%, 45%)', // Magenta
-            'hsl(50, 90%, 40%)',  // Amarillo dorado
-            'hsl(240, 60%, 55%)', // Azul índigo
-            'hsl(350, 70%, 55%)', // Carmesí
-        ];
-        
         let colorIndex = 0;
         
         // Iteramos sobre todos los datos disponibles, recolectando combinaciones únicas
         datos.forEach(d => {
             const key = `${d.organismo}-${d.escala}`;
             if (!mapa.has(key)) {
-                mapa.set(key, PALETA[colorIndex % PALETA.length]);
+                mapa.set(key, COMPARISON_GROUP_COLORS[colorIndex % COMPARISON_GROUP_COLORS.length]);
                 colorIndex++;
             }
         });
@@ -299,7 +285,6 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
                                     <div style={{ marginTop: '6px' }}>
                                         <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Distribución correcta</span>
                                         {(() => {
-                                            const colores: Record<string, string> = { A: '#3b82f6', B: '#10b981', C: '#f59e0b', D: '#8b5cf6' };
                                             const maxVal = Math.max(d.distribucionCorrecta.A, d.distribucionCorrecta.B, d.distribucionCorrecta.C, d.distribucionCorrecta.D, 1);
                                             const entries = Object.entries(d.distribucionCorrecta)
                                                 .sort(([, a], [, b]) => b - a);
@@ -307,11 +292,11 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
                                                 const pct = d.totalPreguntas > 0 ? ((val / d.totalPreguntas) * 100).toFixed(0) : '0';
                                                 return (
                                                     <div key={letra} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
-                                                        <span style={{ fontSize: '11px', fontWeight: 800, color: colores[letra], width: '14px' }}>{letra}</span>
+                                                        <span style={{ fontSize: '11px', fontWeight: 800, color: ANSWER_DISTRIBUTION_COLORS[letra], width: '14px' }}>{letra}</span>
                                                         <div style={{ flex: 1, height: '12px', borderRadius: '3px', backgroundColor: 'var(--bg-tertiary)', overflow: 'hidden' }}>
                                                             <div style={{
                                                                 width: `${(val / maxVal) * 100}%`, height: '100%',
-                                                                borderRadius: '3px', backgroundColor: colores[letra],
+                                                                borderRadius: '3px', backgroundColor: ANSWER_DISTRIBUTION_COLORS[letra],
                                                                 opacity: 0.7, transition: 'width 0.3s ease',
                                                             }} />
                                                         </div>
@@ -395,8 +380,8 @@ export const Comparativa: React.FC<ComparativaProps> = ({ preguntas }) => {
                                                 key={d.ejercicio}
                                                 name={d.ejercicio}
                                                 dataKey={d.ejercicio}
-                                                stroke={COLORES_CONVO[i % COLORES_CONVO.length]}
-                                                fill={COLORES_CONVO[i % COLORES_CONVO.length]}
+                                                stroke={COMPARISON_SERIES_COLORS[i % COMPARISON_SERIES_COLORS.length]}
+                                                fill={COMPARISON_SERIES_COLORS[i % COMPARISON_SERIES_COLORS.length]}
                                                 fillOpacity={0.15}
                                                 strokeWidth={2}
                                             />

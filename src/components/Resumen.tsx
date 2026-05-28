@@ -4,6 +4,7 @@ import { TrendingUp, TrendingDown, Minus, AlertCircle, BarChart3, PieChart, Laye
 import { InfoTooltip } from './InfoTooltip';
 import { ListaPopover, type ListaPopoverItem } from './ListaPopover';
 import { getMateriaColor as getColorMateria } from '../utils/colores';
+import { SUMMARY_ANSWER_COLORS } from '../utils/colorPalettes';
 import { obtenerClaveEjercicioCuestionario } from '../utils/ejercicios';
 import { formatAccessLabel, formatCallTypeLabel, formatExerciseTypeLabel, formatModelLabel, formatQuotaLabel, formatScaleLabel } from '../utils/metadata';
 import { normalizarPrograma } from '../utils/parser';
@@ -23,13 +24,6 @@ interface ResumenProps {
 }
 
 type PopoverTipo = 'materias' | 'bloques' | 'temas' | 'aplicaciones';
-
-const COLORES_RESPUESTA: Record<string, string> = {
-    A: '#3b82f6',
-    B: '#10b981',
-    C: '#f59e0b',
-    D: '#8b5cf6',
-};
 
 export const Resumen: React.FC<ResumenProps> = ({ preguntas, onVerEjercicio, onFiltrarYVerTabla }) => {
     // ——— Popover activo para KPIs listables ———
@@ -230,7 +224,7 @@ export const Resumen: React.FC<ResumenProps> = ({ preguntas, onVerEjercicio, onF
             if (desviacion > 0.15) {
                 sesgos.push(`${letra}: ${pct}% (${count > esperado ? 'más frecuente' : 'menos frecuente'})`);
             }
-            return { letra, count, pct, columnHeight: (count / maxCount) * 100, color: COLORES_RESPUESTA[letra] };
+            return { letra, count, pct, columnHeight: (count / maxCount) * 100, color: SUMMARY_ANSWER_COLORS[letra] };
         });
 
         return { datos, total, sesgos };
@@ -455,10 +449,10 @@ export const Resumen: React.FC<ResumenProps> = ({ preguntas, onVerEjercicio, onF
                     {[
                         { valor: totalPreguntas, etiqueta: 'Preguntas', icono: <Layers className="w-5 h-5" />, color: '#6366f1' },
                         { valor: ejerciciosUnicos, etiqueta: 'Ejercicios', icono: <Target className="w-5 h-5" />, color: '#0ea5e9' },
-                        { valor: materiasUnicas, etiqueta: 'Materias', icono: <PieChart className="w-5 h-5" />, color: '#10b981' },
-                        { valor: bloquesUnicos, etiqueta: 'Bloques', icono: <BarChart3 className="w-5 h-5" />, color: '#f59e0b' },
+                        { valor: materiasUnicas, etiqueta: 'Materias', icono: <PieChart className="w-5 h-5" />, color: '#0891b2' },
+                        { valor: bloquesUnicos, etiqueta: 'Bloques', icono: <BarChart3 className="w-5 h-5" />, color: '#7c3aed' },
                         { valor: temasUnicos, etiqueta: 'Temas', icono: <Zap className="w-5 h-5" />, color: '#8b5cf6' },
-                        { valor: aplicacionesUnicas, etiqueta: 'Aplicaciones', icono: <Target className="w-5 h-5" />, color: '#ec4899', titulo: 'Sin tener en cuenta la versión' },
+                        { valor: aplicacionesUnicas, etiqueta: 'Aplicaciones', icono: <Target className="w-5 h-5" />, color: '#a21caf', titulo: 'Sin tener en cuenta la versión' },
                         { valor: totalAnuladas, etiqueta: 'Anuladas', icono: <AlertCircle className="w-5 h-5" />, color: '#ef4444' },
                     ].map((kpi, i) => {
                         const clicable = kpiEsClicable(kpi.etiqueta);

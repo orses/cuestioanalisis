@@ -160,6 +160,31 @@ describe('parsearCatalogo', () => {
             num_preguntas: 12,
         });
     });
+
+    it('acepta variantes de la cabecera informática básica como indicador de informática', async () => {
+        const headers = [
+            'informática básica',
+            'informatica basica',
+            'informática_básica',
+            'informatica_basica',
+        ];
+
+        for (const header of headers) {
+            const file = createCsvFile([
+                `id_cuestionario|cuestionario|${header}|seguridad`,
+                'Q1|Cuestionario con informática básica|sí|no',
+            ].join('\n'), 'catalogo.csv');
+
+            const catalogo = await parsearCatalogo(file);
+
+            expect(catalogo, `Cabecera probada: ${header}`).toHaveLength(1);
+            expect(catalogo[0], `Cabecera probada: ${header}`).toMatchObject({
+                id_cuestionario: 'Q1',
+                informatica: true,
+                seguridad: false,
+            });
+        }
+    });
 });
 
 describe('normalizarCatalogo', () => {
@@ -175,4 +200,3 @@ describe('normalizarCatalogo', () => {
         expect(catalogo[0].num_preguntas).toBe(12);
     });
 });
-

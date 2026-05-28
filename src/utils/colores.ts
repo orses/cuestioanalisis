@@ -3,16 +3,16 @@
  * Antes estaban duplicados en Resumen.tsx y TablaPreguntas.tsx.
  */
 
-const MATERIA_COLORES: Record<string, string> = {
+export const SUBJECT_COLORS: Record<string, string> = {
     'informática': '#2563eb',
-    'seguridad': '#dc2626',
+    'seguridad': '#7c3aed',
     'administración electrónica': '#0891b2',
-    'legislación': '#7c3aed',
-    'psicotécnico': '#c026d3',
-    'comunicación': '#059669',
+    'legislación': '#4f46e5',
+    'psicotécnico': '#9333ea',
+    'comunicación': '#0284c7',
     'varia': '#64748b',
 };
 
 export function getMateriaColor(materia: string): string {
-    return MATERIA_COLORES[materia.toLowerCase()] ?? '#64748b';
+    return SUBJECT_COLORS[materia.toLowerCase()] ?? '#64748b';
 }
