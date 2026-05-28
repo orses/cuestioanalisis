@@ -433,6 +433,12 @@ export interface ComparativaData {
     año: number;
     organismo: string;
     escala: string;
+    tipoConvocatoria: string;
+    acceso: string;
+    cupo: string;
+    tipo: string;
+    modelo: string;
+    variante: string;
     totalPreguntas: number;
     materias: Record<string, number>;
     bloques: Record<string, number>;
@@ -440,6 +446,57 @@ export interface ComparativaData {
     programas: Record<string, number>;
     tasaAnulacion: number;
     distribucionCorrecta: Record<string, number>;
+}
+
+const ESCALA_COMPARATIVA_ORDER = new Map([
+    ['AUX', 0],
+    ['ADV', 1],
+    ['PSX', 2],
+]);
+
+function compararTextoOrdenable(a: string, b: string): number {
+    const normalizadoA = (a || '').trim().toLocaleUpperCase('es-ES');
+    const normalizadoB = (b || '').trim().toLocaleUpperCase('es-ES');
+
+    if (!normalizadoA && normalizadoB) return 1;
+    if (normalizadoA && !normalizadoB) return -1;
+
+    return normalizadoA.localeCompare(normalizadoB, 'es', {
+        numeric: true,
+        sensitivity: 'base',
+    });
+}
+
+function compararEscalaOrdenable(a: string, b: string): number {
+    const normalizadoA = (a || '').trim().toLocaleUpperCase('es-ES');
+    const normalizadoB = (b || '').trim().toLocaleUpperCase('es-ES');
+    const ordenA = ESCALA_COMPARATIVA_ORDER.get(normalizadoA);
+    const ordenB = ESCALA_COMPARATIVA_ORDER.get(normalizadoB);
+
+    if (ordenA !== undefined && ordenB !== undefined && ordenA !== ordenB) return ordenA - ordenB;
+    if (ordenA !== undefined && ordenB === undefined) return -1;
+    if (ordenA === undefined && ordenB !== undefined) return 1;
+
+    return compararTextoOrdenable(a, b);
+}
+
+function compararAnioOrdenable(a: number, b: number): number {
+    if (!a && b) return 1;
+    if (a && !b) return -1;
+    return a - b;
+}
+
+function compararDatosComparativa(a: ComparativaData, b: ComparativaData): number {
+    return compararTextoOrdenable(a.organismo, b.organismo)
+        || compararEscalaOrdenable(a.escala, b.escala)
+        || compararAnioOrdenable(a.año, b.año)
+        || compararTextoOrdenable(a.acceso, b.acceso)
+        || compararTextoOrdenable(a.tipoConvocatoria, b.tipoConvocatoria)
+        || compararTextoOrdenable(a.cupo, b.cupo)
+        || compararTextoOrdenable(a.tipo, b.tipo)
+        || compararTextoOrdenable(a.modelo, b.modelo)
+        || compararTextoOrdenable(a.variante, b.variante)
+        || compararTextoOrdenable(a.ejercicio, b.ejercicio);
 }
 
 export function generarComparativa(preguntas: Pregunta[]): ComparativaData[] {
@@ -478,6 +535,12 @@ export function generarComparativa(preguntas: Pregunta[]): ComparativaData[] {
             año: ps[0].metadatos.año,
             organismo: ps[0].metadatos.organismo,
             escala: ps[0].metadatos.escala,
+            tipoConvocatoria: ps[0].metadatos.tipoConvocatoria || '',
+            acceso: ps[0].metadatos.acceso || '',
+            cupo: ps[0].metadatos.cupo || '',
+            tipo: ps[0].metadatos.tipo || '',
+            modelo: ps[0].metadatos.modelo || '',
+            variante: ps[0].metadatos.variante || '',
             totalPreguntas: ps.length,
             materias,
             bloques,
@@ -488,7 +551,7 @@ export function generarComparativa(preguntas: Pregunta[]): ComparativaData[] {
         });
     }
 
-    datos.sort((a, b) => a.año - b.año || a.ejercicio.localeCompare(b.ejercicio));
+    datos.sort(compararDatosComparativa);
     return datos;
 }
 

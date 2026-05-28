@@ -421,3 +421,38 @@ El color del borde izquierdo en el selector de convocatorias estaba resolviendo 
 - El color de INAP y el del Ayuntamiento de Ávila dependen de aproximación visual desde fuente oficial, por ausencia de equivalencia HEX pública en texto.
 - Ayuntamiento de Cenes de la Vega conserva fallback hasta localizar una fuente cromática institucional sólida.
 - Si se incorporan nuevos organismos, deberán añadirse al registro con fuente y grado de confianza antes de considerarlos corporativos.
+
+## 2026-05-28 - Tarjetas configurables y ordenadas en comparativa
+
+### Qué se ha cambiado
+
+- Se ha sustituido la distribución por columnas del selector de convocatorias de `Comparativa` por una cuadrícula estable.
+- Se ha añadido el control `Tarjetas por fila`, con opciones de 1 a 5 tarjetas por fila.
+- Las tarjetas muestran la información principal sin truncado con puntos suspensivos y separan los metadatos en etiquetas legibles.
+- La tarjeta seleccionada queda marcada mediante estado accesible, casilla activa, borde reforzado, sombra y etiqueta `Seleccionada`.
+- `generarComparativa` incorpora los metadatos necesarios para ordenar y mostrar convocatorias: tipo de convocatoria, acceso, cupo, tipo de ejercicio, modelo y variante.
+- Se han ampliado las pruebas focalizadas de `Comparativa` para cubrir orden, legibilidad, selección, límite de cuatro convocatorias y configuración de tarjetas por fila.
+
+### Por qué se ha cambiado
+
+El selector de comparativa dificultaba la lectura de convocatorias porque comprimía las tarjetas en columnas estrechas y truncaba el identificador. Además, el orden por etiqueta completa mezclaba organismos, escalas, años y accesos, lo que hacía más costoso localizar la convocatoria correcta y confirmar cuál estaba seleccionada.
+
+### Contrato vigente
+
+- Las convocatorias de comparativa se ordenan por organismo, escala, año, acceso, tipo de convocatoria, cupo, tipo de ejercicio, modelo, variante y etiqueta de ejercicio.
+- La escala usa el orden de dominio `AUX`, `ADV`, `PSX`; las escalas desconocidas se ordenan alfabéticamente tras las conocidas.
+- El selector permite elegir entre 1, 2, 3, 4 y 5 tarjetas por fila.
+- El identificador de la convocatoria debe poder partir línea y no debe ocultarse mediante truncado visual.
+- La selección debe ser visible y accesible mediante `aria-pressed`, `data-selected`, casilla activa y etiqueta textual.
+- Se mantiene el límite máximo de cuatro convocatorias seleccionadas.
+
+### Pruebas y verificaciones
+
+- `npm run test -- tests/components/Comparativa.test.tsx`: 1 archivo de prueba, 5 pruebas superadas.
+- `npm run test`: 22 archivos de prueba, 75 pruebas superadas.
+
+### Riesgos, límites y pendientes
+
+- En pantallas estrechas, elegir muchas tarjetas por fila puede activar desplazamiento horizontal; es intencionado para respetar el número de columnas elegido por el usuario.
+- El orden de escalas queda codificado para `AUX`, `ADV` y `PSX`; si se incorporan nuevas escalas con orden de negocio específico, habrá que añadirlas al contrato.
+- No se ha ejecutado `npm run verify` en esta microfase; las verificaciones realizadas cubren la prueba focalizada y la suite completa de Vitest.

@@ -1,8 +1,12 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { Comparativa } from '../../src/components/Comparativa';
 import { getOrganismBrandColor } from '../../src/utils/organismBrandColors';
 import { createQuestion } from '../fixtures/questions';
+
+function getCards(): HTMLElement[] {
+    return screen.getAllByTestId('comparison-exercise-card');
+}
 
 describe('Comparativa', () => {
     it('usa el mismo borde izquierdo para convocatorias del mismo organismo aunque cambie la escala', () => {
@@ -31,7 +35,7 @@ describe('Comparativa', () => {
             />
         );
 
-        const cards = screen.getAllByTestId('comparison-exercise-card');
+        const cards = getCards();
         const inapCards = cards.filter(card => card.getAttribute('data-organism') === 'INAP');
         const sergasCard = cards.find(card => card.getAttribute('data-organism') === 'SERGAS');
 
@@ -41,5 +45,170 @@ describe('Comparativa', () => {
         expect((sergasCard as HTMLElement).style.borderLeft).not.toBe((inapCards[0] as HTMLElement).style.borderLeft);
         expect(inapCards[0]).toHaveStyle({ borderLeft: `4px solid ${getOrganismBrandColor('INAP')}` });
         expect(sergasCard).toHaveStyle({ borderLeft: `4px solid ${getOrganismBrandColor('SERGAS')}` });
+    });
+
+    it('ordena las tarjetas por organismo, escala, año, acceso, tipo de ejercicio y etiqueta final', () => {
+        render(
+            <Comparativa
+                preguntas={[
+                    createQuestion({
+                        id: 'exercise_10_1',
+                        id_cuestionario: 'Q_INAP_AUX_NUM',
+                        metadatos: { organismo: 'INAP', escala: 'AUX', año: 2021, acceso: 'LI', tipo: 'UNI' },
+                    }),
+                    createQuestion({
+                        id: 'sergas_psx_2020_1',
+                        id_cuestionario: 'Q_SERGAS_PSX',
+                        metadatos: { organismo: 'SERGAS', escala: 'PSX', año: 2020, acceso: 'LI', tipo: 'UNI' },
+                    }),
+                    createQuestion({
+                        id: 'inap_adv_2019_1',
+                        id_cuestionario: 'Q_INAP_ADV',
+                        metadatos: { organismo: 'INAP', escala: 'ADV', año: 2019, acceso: 'LI', tipo: 'UNI' },
+                    }),
+                    createQuestion({
+                        id: 'inap_aux_2020_1',
+                        id_cuestionario: 'Q_INAP_AUX_2020',
+                        metadatos: { organismo: 'INAP', escala: 'AUX', año: 2020, acceso: 'LI', tipo: 'UNI' },
+                    }),
+                    createQuestion({
+                        id: 'exercise_2_1',
+                        id_cuestionario: 'Q_INAP_AUX_NUM',
+                        metadatos: { organismo: 'INAP', escala: 'AUX', año: 2021, acceso: 'LI', tipo: 'UNI' },
+                    }),
+                    createQuestion({
+                        id: 'inap_aux_2021_pi_1',
+                        id_cuestionario: 'Q_INAP_AUX_PI',
+                        metadatos: { organismo: 'INAP', escala: 'AUX', año: 2021, acceso: 'PI', tipo: 'UNI' },
+                    }),
+                    createQuestion({
+                        id: 'inap_aux_2021_li_seg_1',
+                        id_cuestionario: 'Q_INAP_AUX_SEG',
+                        metadatos: { organismo: 'INAP', escala: 'AUX', año: 2021, acceso: 'LI', tipo: 'SEG' },
+                    }),
+                    createQuestion({
+                        id: 'inap_aux_2021_li_pri_1',
+                        id_cuestionario: 'Q_INAP_AUX_PRI',
+                        metadatos: { organismo: 'INAP', escala: 'AUX', año: 2021, acceso: 'LI', tipo: 'PRI' },
+                    }),
+                ]}
+            />
+        );
+
+        const order = getCards().map(card => ({
+            organismo: card.dataset.organism,
+            escala: card.dataset.scale,
+            año: card.dataset.year,
+            acceso: card.dataset.access,
+            tipo: card.dataset.exerciseType,
+            ejercicio: card.dataset.exercise,
+        }));
+
+        expect(order).toEqual([
+            { organismo: 'INAP', escala: 'AUX', año: '2020', acceso: 'LI', tipo: 'UNI', ejercicio: 'Q_INAP_AUX_2020 - inap_aux_2020' },
+            { organismo: 'INAP', escala: 'AUX', año: '2021', acceso: 'LI', tipo: 'PRI', ejercicio: 'Q_INAP_AUX_PRI - inap_aux_2021_li_pri' },
+            { organismo: 'INAP', escala: 'AUX', año: '2021', acceso: 'LI', tipo: 'SEG', ejercicio: 'Q_INAP_AUX_SEG - inap_aux_2021_li_seg' },
+            { organismo: 'INAP', escala: 'AUX', año: '2021', acceso: 'LI', tipo: 'UNI', ejercicio: 'Q_INAP_AUX_NUM - exercise_2' },
+            { organismo: 'INAP', escala: 'AUX', año: '2021', acceso: 'LI', tipo: 'UNI', ejercicio: 'Q_INAP_AUX_NUM - exercise_10' },
+            { organismo: 'INAP', escala: 'AUX', año: '2021', acceso: 'PI', tipo: 'UNI', ejercicio: 'Q_INAP_AUX_PI - inap_aux_2021_pi' },
+            { organismo: 'INAP', escala: 'ADV', año: '2019', acceso: 'LI', tipo: 'UNI', ejercicio: 'Q_INAP_ADV - inap_adv_2019' },
+            { organismo: 'SERGAS', escala: 'PSX', año: '2020', acceso: 'LI', tipo: 'UNI', ejercicio: 'Q_SERGAS_PSX - sergas_psx_2020' },
+        ]);
+    });
+
+    it('permite elegir cuántas tarjetas se muestran por fila', () => {
+        render(
+            <Comparativa
+                preguntas={[
+                    createQuestion({ id: 'p1', id_cuestionario: 'Q1' }),
+                    createQuestion({ id: 'p2', id_cuestionario: 'Q2' }),
+                ]}
+            />
+        );
+
+        const grid = screen.getByTestId('comparison-exercise-grid');
+        const threeCardsButton = screen.getByRole('button', { name: '3 tarjetas por fila' });
+        const fourCardsButton = screen.getByRole('button', { name: '4 tarjetas por fila' });
+
+        expect(grid).toHaveStyle({ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' });
+        expect(threeCardsButton).toHaveAttribute('aria-pressed', 'true');
+
+        fireEvent.click(fourCardsButton);
+
+        expect(grid).toHaveStyle({ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' });
+        expect(fourCardsButton).toHaveAttribute('aria-pressed', 'true');
+        expect(threeCardsButton).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    it('muestra la información sin truncado y marca claramente la tarjeta seleccionada', () => {
+        render(
+            <Comparativa
+                preguntas={[
+                    createQuestion({
+                        id: 'convocatoria_muy_larga_para_comprobar_lectura_completa_1',
+                        id_cuestionario: 'C0001',
+                        metadatos: {
+                            organismo: 'INAP',
+                            escala: 'AUX',
+                            año: 2024,
+                            acceso: 'LI',
+                            cupo: 'DI',
+                            tipo: 'UNI',
+                            modelo: 'A',
+                            variante: 'EXT',
+                        },
+                    }),
+                ]}
+            />
+        );
+
+        const card = getCards()[0];
+        const title = screen.getByTestId('comparison-exercise-title');
+
+        expect(title).toHaveTextContent('C0001 - convocatoria_muy_larga_para_comprobar_lectura_completa');
+        expect(title).toHaveStyle({ overflowWrap: 'anywhere', whiteSpace: 'normal' });
+        expect(screen.getByText('Organismo')).toBeInTheDocument();
+        expect(screen.getByText('Escala')).toBeInTheDocument();
+        expect(screen.getByText('Auxiliar')).toBeInTheDocument();
+        expect(screen.getByText('Acceso')).toBeInTheDocument();
+        expect(screen.getByText('Libre')).toBeInTheDocument();
+        expect(screen.getByText('Modelo')).toBeInTheDocument();
+        expect(screen.getByText('A')).toBeInTheDocument();
+
+        fireEvent.click(card);
+
+        expect(card).toHaveAttribute('aria-pressed', 'true');
+        expect(card).toHaveAttribute('data-selected', 'true');
+        expect(screen.getByTestId('comparison-selected-badge')).toHaveTextContent('Seleccionada');
+        expect(card.style.boxShadow).toContain('var(--accent-primary)');
+    });
+
+    it('mantiene el límite de cuatro convocatorias seleccionadas', () => {
+        render(
+            <Comparativa
+                preguntas={[
+                    createQuestion({ id: 'limite_1_1', id_cuestionario: 'Q1' }),
+                    createQuestion({ id: 'limite_2_1', id_cuestionario: 'Q2' }),
+                    createQuestion({ id: 'limite_3_1', id_cuestionario: 'Q3' }),
+                    createQuestion({ id: 'limite_4_1', id_cuestionario: 'Q4' }),
+                    createQuestion({ id: 'limite_5_1', id_cuestionario: 'Q5' }),
+                ]}
+            />
+        );
+
+        const cards = getCards();
+        cards.slice(0, 4).forEach(card => fireEvent.click(card));
+
+        expect(cards.slice(0, 4).map(card => card.dataset.selected)).toEqual(['true', 'true', 'true', 'true']);
+        expect(cards[4]).toBeDisabled();
+
+        fireEvent.click(cards[4]);
+
+        expect(cards[4]).toHaveAttribute('data-selected', 'false');
+
+        fireEvent.click(cards[0]);
+
+        expect(cards[0]).toHaveAttribute('data-selected', 'false');
+        expect(cards[4]).not.toBeDisabled();
     });
 });
