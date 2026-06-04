@@ -115,6 +115,30 @@ function verifyResolvedUrl(packagePath, resolved, report) {
     }
 }
 
+function getParentPackagePath(packagePath) {
+    const nestedNodeModulesIndex = packagePath.lastIndexOf('/node_modules/');
+    if (nestedNodeModulesIndex < 0) return null;
+    return packagePath.slice(0, nestedNodeModulesIndex);
+}
+
+function hasVerifiableBundledContainer(packagePath, packages) {
+    let parentPath = getParentPackagePath(packagePath);
+
+    while (parentPath) {
+        const parentInfo = packages[parentPath];
+        if (!parentInfo) return false;
+
+        if (parentInfo.resolved && parentInfo.integrity && SAFE_INTEGRITY.test(parentInfo.integrity)) {
+            return true;
+        }
+
+        if (!parentInfo.inBundle) return false;
+        parentPath = getParentPackagePath(parentPath);
+    }
+
+    return false;
+}
+
 function verifyPackageLock(rootDir, npmrc, report) {
     const lockPath = path.join(rootDir, 'package-lock.json');
 
@@ -139,14 +163,18 @@ function verifyPackageLock(rootDir, npmrc, report) {
 
         checkedPackages += 1;
 
-        if (!packageInfo.resolved) {
-            report.errors.push(`${packagePath} no declara resolved en package-lock.json.`);
-        } else {
-            verifyResolvedUrl(packagePath, packageInfo.resolved, report);
-        }
+        const usesBundledContainerIntegrity = packageInfo.inBundle && hasVerifiableBundledContainer(packagePath, packages);
 
-        if (!packageInfo.integrity || !SAFE_INTEGRITY.test(packageInfo.integrity)) {
-            report.errors.push(`${packagePath} no declara una integridad SRI segura.`);
+        if (!usesBundledContainerIntegrity) {
+            if (!packageInfo.resolved) {
+                report.errors.push(`${packagePath} no declara resolved en package-lock.json.`);
+            } else {
+                verifyResolvedUrl(packagePath, packageInfo.resolved, report);
+            }
+
+            if (!packageInfo.integrity || !SAFE_INTEGRITY.test(packageInfo.integrity)) {
+                report.errors.push(`${packagePath} no declara una integridad SRI segura.`);
+            }
         }
 
         if (packageInfo.hasInstallScript) {
