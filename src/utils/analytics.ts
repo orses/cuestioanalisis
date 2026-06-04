@@ -638,13 +638,17 @@ export function predecirTemas(preguntas: Pregunta[]): PrediccionTema[] {
 
         const probabilidad = Math.min(Math.round(factorFrecuencia + factorCobertura + factorRecencia + factorTendencia), 100);
 
-        let razon = '';
-        if (tendencia === 'creciente' && ultimaAparicion === maxAño) razon = 'Tendencia creciente y presente en la última convocatoria';
-        else if (ultimaAparicion === maxAño) razon = 'Presente en la última convocatoria';
-        else if (tendencia === 'creciente') razon = 'Tendencia creciente en convocatorias recientes';
-        else if (añosArr.length >= totalAños * 0.8) razon = 'Aparece de forma constante en casi todas las convocatorias';
-        else if (tendencia === 'decreciente') razon = 'Tendencia decreciente, menor probabilidad';
-        else razon = 'Aparición regular';
+        const razon = tendencia === 'creciente' && ultimaAparicion === maxAño
+            ? 'Tendencia creciente y presente en la última convocatoria'
+            : ultimaAparicion === maxAño
+                ? 'Presente en la última convocatoria'
+                : tendencia === 'creciente'
+                    ? 'Tendencia creciente en convocatorias recientes'
+                    : añosArr.length >= totalAños * 0.8
+                        ? 'Aparece de forma constante en casi todas las convocatorias'
+                        : tendencia === 'decreciente'
+                            ? 'Tendencia decreciente, menor probabilidad'
+                            : 'Aparición regular';
 
         predicciones.push({
             tema,

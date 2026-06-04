@@ -153,14 +153,11 @@ export const CatalogoCuestionarios: React.FC<Props> = ({
         return [...filtrado].sort((a, b) => {
             const va = sortKey === 'version_sistema_operativo' ? obtenerVersionSistemaOperativo(a) : a[sortKey];
             const vb = sortKey === 'version_sistema_operativo' ? obtenerVersionSistemaOperativo(b) : b[sortKey];
-            let cmp = 0;
-            if (typeof va === 'boolean' && typeof vb === 'boolean') {
-                cmp = Number(va) - Number(vb);
-            } else if (typeof va === 'number' && typeof vb === 'number') {
-                cmp = va - vb;
-            } else {
-                cmp = String(va ?? '').localeCompare(String(vb ?? ''), 'es');
-            }
+            const cmp = typeof va === 'boolean' && typeof vb === 'boolean'
+                ? Number(va) - Number(vb)
+                : typeof va === 'number' && typeof vb === 'number'
+                    ? va - vb
+                    : String(va ?? '').localeCompare(String(vb ?? ''), 'es');
             return sortDir === 'asc' ? cmp : -cmp;
         });
     }, [catalogoFiltradoGlobal, busqueda, sortKey, sortDir]);
