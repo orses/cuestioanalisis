@@ -8,6 +8,8 @@ type LockPackage = {
     resolved?: string;
     integrity?: string;
     hasInstallScript?: boolean;
+    inBundle?: boolean;
+    optional?: boolean;
 };
 
 let tempDirs: string[] = [];
@@ -80,6 +82,27 @@ describe('verifyNpmSupplyChain', () => {
         expect(report.stats.checkedPackages).toBe(1);
     });
 
+    it('acepta dependencias empaquetadas si el contenedor declara tarball e integridad', async () => {
+        const { verifyNpmSupplyChain } = await loadVerifier();
+        const report = verifyNpmSupplyChain(createProject({
+            packages: {
+                'node_modules/container': {
+                    version: '1.0.0',
+                    resolved: 'https://registry.npmjs.org/container/-/container-1.0.0.tgz',
+                    integrity: 'sha512-abc=',
+                },
+                'node_modules/container/node_modules/bundled-package': {
+                    version: '1.0.0',
+                    inBundle: true,
+                    optional: true,
+                },
+            },
+        }));
+
+        expect(report.errors).toEqual([]);
+        expect(report.stats.checkedPackages).toBe(2);
+    });
+
     it('bloquea orígenes no oficiales o sin HTTPS', async () => {
         const { verifyNpmSupplyChain } = await loadVerifier();
         const report = verifyNpmSupplyChain(createProject({
@@ -145,4 +168,3 @@ describe('verifyNpmSupplyChain', () => {
         expect(report.warnings.join('\n')).toContain('Quedan neutralizados');
     });
 });
-
