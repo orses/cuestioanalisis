@@ -61,7 +61,11 @@ La auditoría falla si hay vulnerabilidades de severidad alta o superior.
 
 ### 4. Integración en despliegue
 
-El workflow de GitHub Pages ejecuta `npm run security:check` antes de construir la aplicación. Un fallo bloquea el despliegue.
+El flujo de GitHub Pages ejecuta `npm run verify` antes de publicar la aplicación. Un fallo de seguridad, pruebas, análisis estático o compilación bloquea el despliegue.
+
+El flujo `.github/workflows/verify.yml` ejecuta la misma verificación en cada solicitud de incorporación a `main`, con Node 22.22.3 y Node 24. Solo dispone de permiso de lectura del código y no publica artefactos ni despliega la aplicación.
+
+La versión de referencia para el desarrollo y el despliegue se declara en `.node-version` y `.nvmrc`: Node 22.22.3. `package.json` admite `^22.22.3 || >=24`. Node 20 deja de formar parte del contrato, porque varias dependencias transitivas de las pruebas requieren Node 22 o posterior.
 
 ## Comandos obligatorios
 
@@ -119,14 +123,13 @@ Procedimiento obligatorio:
 
 ## Resultado actual
 
-La comprobación actual detecta dos dependencias con scripts de instalación declarados:
+En la revisión del 27 de noviembre de 2026, la comprobación detecta `fsevents` como dependencia con un script de instalación declarado. `ignore-scripts=true` impide que se ejecute automáticamente.
 
-- `esbuild`;
-- `fsevents`.
+La instalación limpia y `npm run verify` terminan correctamente con Node 22.22.3 y npm 10.9.8: ambas auditorías notifican cero vulnerabilidades, las 82 pruebas pasan y el análisis estático y la compilación terminan sin errores.
 
-No bloquean la instalación porque `ignore-scripts=true` impide que esos scripts se ejecuten automáticamente.
+La regeneración del archivo de bloqueo se realizó con npm 11, porque npm 10.9.8 falla internamente al resolver algunas dependencias pares opcionales de Vitest durante la actualización. No se utilizaron `--force`, `--legacy-peer-deps` ni excepciones de seguridad. La instalación posterior mediante `npm ci --ignore-scripts` funciona con npm 10.9.8.
 
-`npm audit --audit-level=high` no informa vulnerabilidades en producción ni en desarrollo.
+Se mantienen TypeScript 6.0.3, jsdom 29 y la rama 4 de Vitest. TypeScript 7 queda pendiente de compatibilidad con `typescript-eslint`; las migraciones mayores de jsdom y de las utilidades de pruebas se evaluarán por separado.
 
 ## Límites conocidos
 

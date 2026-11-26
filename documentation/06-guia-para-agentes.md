@@ -32,7 +32,7 @@ npm run lint
 npm run build
 ```
 
-No hay pruebas automatizadas configuradas en el estado actual.
+Hay 82 pruebas automatizadas distribuidas en 23 archivos. La verificación completa se ejecuta con `npm run verify`: seguridad, pruebas, análisis estático y compilación. La versión de referencia es Node 22.22.3, declarada en `.node-version` y `.nvmrc`.
 
 ## Particularidades del entorno
 

@@ -631,3 +631,27 @@ La vista por tarjetas es útil para lectura visual, pero deja de ser manejable c
 - La tabla usa desplazamiento horizontal cuando no hay ancho suficiente para todas las columnas.
 - La ordenación `Orden base` depende del contrato de orden de `generarComparativa`.
 - No se ha ejecutado `npm run verify`; se han ejecutado prueba focalizada, suite completa, build y lint.
+
+## 2026-11-27 - Consolidación de dependencias y validación previa a la integración
+
+### Cambios y justificación
+
+- Se incorporan los cambios revisados de las solicitudes #42, #47 y #49: acciones de GitHub en su versión 7 y dependencias de producción compatibles.
+- Se sustituyen las propuestas #48, #52, #53, #54, #55 y #56 por una resolución conjunta que corrige las 21 vulnerabilidades detectadas en el estado inicial.
+- Se actualizan, entre otras dependencias, brace-expansion a 5.1.0, Browserslist a 4.29.6, PostCSS a 8.5.33, undici a 7.30.2, Vite a 8.4.0 y Vitest y mocker a 4.1.12.
+- Se mantiene TypeScript 6.0.3 por su compatibilidad con typescript-eslint 8.74.0. Las migraciones mayores de TypeScript, jsdom y las utilidades de pruebas quedan fuera de esta microfase.
+- Se unifica Node 22.22.3 en los archivos de versión y el despliegue. Se elimina la declaración de compatibilidad con Node 20, incompatible con parte del entorno de pruebas.
+- Se añade verificación automática de solicitudes con Node 22.22.3 y Node 24. El despliegue también exige seguridad, pruebas, análisis estático y compilación.
+
+### Verificación
+
+- Instalación limpia mediante npm ci --ignore-scripts con Node 22.22.3 y npm 10.9.8: correcta.
+- npm run verify: correcto. Ambas auditorías notifican cero vulnerabilidades; 23 archivos y 82 pruebas superados; análisis estático y compilación correctos.
+- Todas las restricciones de Node declaradas por las dependencias del archivo de bloqueo admiten Node 22.22.3.
+- El archivo de bloqueo se regeneró con npm 11 para evitar un fallo interno de resolución de npm 10. No se omitieron las dependencias pares ni se forzó la instalación.
+
+### Límites
+
+- Las auditorías reflejan los avisos conocidos en el momento de ejecución.
+- Las comprobaciones locales no incluyen una revisión visual de los gráficos en un navegador.
+- La ejecución en Linux con Node 22 y Node 24 se comprobará en GitHub antes de integrar la solicitud consolidada.
