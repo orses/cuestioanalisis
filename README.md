@@ -23,7 +23,7 @@ Aplicación web para el análisis de cuestionarios de oposiciones. Permite impor
 | Categoría       | Herramienta                    |
 |-----------------|--------------------------------|
 | Framework       | React 19 + TypeScript          |
-| Bundler         | Vite 7                         |
+| Bundler         | Vite 8                         |
 | Estilos         | Tailwind CSS 4                 |
 | Gráficos        | Recharts · Chart.js            |
 | Iconos          | Lucide React                   |
@@ -36,8 +36,13 @@ Aplicación web para el análisis de cuestionarios de oposiciones. Permite impor
 git clone https://github.com/<usuario>/cuestioanalisis.git
 cd cuestioanalisis
 
-# Instalar dependencias
-npm install
+# Usar Node 22.22.3, indicado en .node-version y .nvmrc
+
+# Instalar dependencias sin ejecutar scripts de instalación
+npm ci --ignore-scripts
+
+# Verificar seguridad, pruebas, análisis estático y compilación
+npm run verify
 
 # Iniciar en modo desarrollo
 npm run dev
